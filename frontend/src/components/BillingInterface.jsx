@@ -351,9 +351,9 @@ export default function BillingInterface() {
       <header className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/60 border border-slate-800/80 p-4 rounded-2xl backdrop-blur-md">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-teal-400 to-indigo-400 bg-clip-text text-transparent">
-            Ds billing
+            DS Billing
           </h1>
-          <p className="text-xs text-slate-400 mt-1">ds dryfruits premium dry fruits store</p>
+          <p className="text-s text-slate-400 mt-1">DS Dryfruits, A Premium Dryfruits store</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {/* Admin Mode Toggle Button */}
@@ -750,23 +750,6 @@ export default function BillingInterface() {
                     <div className="flex justify-between text-base font-semibold text-slate-400">
                       <span>Subtotal:</span>
                       <span className="font-mono text-base text-slate-200">₹{billingTotals.subtotal.toFixed(2)}</span>
-                    </div>
-
-                    <div className="flex gap-4 items-center justify-between">
-                      <span className="text-base font-semibold text-slate-400 whitespace-nowrap">Discount (₹):</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max={billingTotals.subtotal}
-                        value={discount}
-                        onChange={(e) => setDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
-                        className="w-28 px-2 py-1.5 bg-slate-950 border border-slate-850 rounded-lg text-right text-base font-mono focus:outline-none focus:border-emerald-500 text-slate-100"
-                      />
-                    </div>
-
-                    <div className="flex justify-between text-base font-semibold text-slate-400">
-                      <span>Sales Tax ({taxRate}%):</span>
-                      <span className="font-mono text-base text-slate-200">₹{billingTotals.tax.toFixed(2)}</span>
                     </div>
 
                     <div className="flex justify-between text-lg font-black text-slate-100 pt-2 border-t border-dashed border-slate-800">
