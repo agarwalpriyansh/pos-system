@@ -21,8 +21,6 @@ export default function BillingInterface() {
 
   // Cart & Invoice State
   const [cart, setCart] = useState([]);
-  const [discount, setDiscount] = useState(0);
-  const [taxRate, setTaxRate] = useState(5); // 5% default tax
   const [paymentMethod, setPaymentMethod] = useState('Cash');
 
   // Customer Information
@@ -147,10 +145,9 @@ export default function BillingInterface() {
   // Calculate totals
   const billingTotals = useMemo(() => {
     const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
-    const tax = parseFloat(((subtotal * taxRate) / 100).toFixed(2));
-    const total = parseFloat((subtotal + tax - parseFloat(discount || 0)).toFixed(2));
-    return { subtotal, tax, total };
-  }, [cart, taxRate, discount]);
+    const total = parseFloat(subtotal.toFixed(2));
+    return { subtotal, tax: 0, discount: 0, total };
+  }, [cart]);
 
   // Handle sales checkout
   const handleCheckout = async (e) => {
@@ -178,8 +175,8 @@ export default function BillingInterface() {
           productId: item.productId,
           quantity: item.quantity
         })),
-        tax: billingTotals.tax,
-        discount: parseFloat(discount),
+        tax: 0,
+        discount: 0,
         paymentMethod
       };
 
@@ -207,7 +204,6 @@ export default function BillingInterface() {
         setCustomerName('');
         setCustomerPhone('');
         setCustomerEmail('');
-        setDiscount(0);
         setShowMobileCart(false);
       } else {
         throw new Error(data.error || 'Server error');

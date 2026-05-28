@@ -65,17 +65,15 @@ router.post('/', async (req, res) => {
     }
 
     // Calculations
-    const calculatedTax = tax || 0;
-    const calculatedDiscount = discount || 0;
-    const total = subtotal + calculatedTax - calculatedDiscount;
+    const total = subtotal;
 
     // 3. Create Bill Document
     const bill = new Bill({
       customer: customer._id,
       items: billItems,
       subtotal,
-      tax: calculatedTax,
-      discount: calculatedDiscount,
+      tax: 0,
+      discount: 0,
       total,
       paymentMethod,
       whatsappStatus: 'Pending'
