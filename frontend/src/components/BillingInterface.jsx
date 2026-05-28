@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 export default function BillingInterface() {
   // Catalog & Core State
@@ -349,7 +349,7 @@ export default function BillingInterface() {
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-teal-400 to-indigo-400 bg-clip-text text-transparent">
             DS Billing
           </h1>
-          <p className="text-s text-slate-400 mt-1">DS Dryfruits, A Premium Dryfruits store</p>
+          <p className="text-xs md:text-sm text-slate-400 mt-1">DS Dryfruits, A Premium Dryfruits store</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {/* Admin Mode Toggle Button */}
@@ -405,9 +405,9 @@ export default function BillingInterface() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products by name or SKU..."
-                className="w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition duration-150"
+                className="w-full pl-10 md:pl-11 pr-4 py-2.5 md:py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition duration-150"
               />
-              <span className="absolute left-3.5 top-3.5 text-slate-500">🔍</span>
+              <span className="absolute left-3.5 md:left-4 top-3 md:top-3.5 text-xs md:text-sm text-slate-500">🔍</span>
             </div>
 
             {/* Horizontal Scroll Categories */}
@@ -416,7 +416,7 @@ export default function BillingInterface() {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap active:scale-95 transition duration-150 ${
+                  className={`px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap active:scale-95 transition duration-150 ${
                     selectedCategory === cat
                       ? adminMode ? 'bg-indigo-500 text-slate-950' : 'bg-emerald-500 text-slate-950'
                       : 'bg-slate-900 hover:bg-slate-800 text-slate-400'
@@ -456,7 +456,7 @@ export default function BillingInterface() {
                         addToCart(product);
                       }
                     }}
-                    className={`group relative flex flex-col justify-between p-4 rounded-2xl border transition duration-200 cursor-pointer select-none bg-slate-900/40 hover:bg-slate-900/80 active:scale-98 ${
+                    className={`group relative flex flex-col justify-between p-3.5 rounded-2xl border transition duration-200 cursor-pointer select-none bg-slate-900/40 hover:bg-slate-900/80 active:scale-98 ${
                       adminMode 
                         ? isBeingEdited 
                           ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-950/15' 
@@ -465,7 +465,7 @@ export default function BillingInterface() {
                           ? 'opacity-50 border-slate-900 cursor-not-allowed' 
                           : cartQty > 0 
                             ? 'border-emerald-500/40 ring-1 ring-emerald-500/20' 
-                            : 'border-slate-855'
+                            : 'border-slate-800'
                     }`}
                   >
                     {/* Floating Stock Tag */}
@@ -478,16 +478,16 @@ export default function BillingInterface() {
 
                     <div className="mb-4 pr-10 md:pr-12">
                       <span className="text-slate-500 text-[10px] md:text-xs uppercase font-mono tracking-wider">{product.sku}</span>
-                      <h3 className={`font-black text-sm md:text-lg lg:text-xl text-slate-200 transition-colors duration-150 line-clamp-2 mt-0.5 ${
+                      <h3 className={`font-black text-xs md:text-sm lg:text-base text-slate-200 transition-colors duration-150 line-clamp-2 mt-0.5 ${
                         adminMode ? 'group-hover:text-indigo-400' : 'group-hover:text-emerald-400'
                       }`}>
                         {product.name}
                       </h3>
-                      <p className="text-slate-500 text-xs md:text-sm mt-1 md:mt-1.5">{product.category}</p>
+                      <p className="text-slate-500 text-[10px] md:text-xs mt-1 md:mt-1.5">{product.category}</p>
                     </div>
 
                     <div className="flex justify-between items-center mt-auto">
-                      <span className={`${adminMode ? 'text-indigo-400' : 'text-emerald-400'} font-black text-lg md:text-2xl lg:text-3xl`}>
+                      <span className={`${adminMode ? 'text-indigo-400' : 'text-emerald-400'} font-black text-sm md:text-lg lg:text-xl`}>
                         ₹{product.price.toFixed(2)}
                       </span>
                       
@@ -498,11 +498,11 @@ export default function BillingInterface() {
                           {isBeingEdited ? 'Editing' : 'Select'}
                         </span>
                       ) : cartQty > 0 ? (
-                        <span className="bg-emerald-500 text-slate-950 font-black text-xs md:text-base h-7 px-2.5 md:h-9 md:px-4 rounded-full flex items-center justify-center">
+                        <span className="bg-emerald-500 text-slate-950 font-black text-xs md:text-sm h-7 px-2.5 md:h-8 md:px-3 rounded-full flex items-center justify-center">
                           {cartQty}x
                         </span>
                       ) : (
-                        <span className="bg-slate-800 group-hover:bg-emerald-500 group-hover:text-slate-950 text-slate-300 font-bold text-xs md:text-base h-7 w-7 md:h-9 md:w-9 rounded-full flex items-center justify-center transition duration-150">
+                        <span className="bg-slate-800 group-hover:bg-emerald-500 group-hover:text-slate-950 text-slate-300 font-bold text-xs md:text-sm h-7 w-7 md:h-8 md:w-8 rounded-full flex items-center justify-center transition duration-150">
                           +
                         </span>
                       )}
@@ -537,42 +537,42 @@ export default function BillingInterface() {
                 )}
               </div>
 
-              <form onSubmit={handleAdminSubmit} className="flex flex-col gap-3.5">
+              <form onSubmit={handleAdminSubmit} className="flex flex-col gap-3">
                 
-                <h3 className="text-xs font-extrabold text-slate-300 uppercase tracking-widest pl-1">
+                <h3 className="text-xs font-bold text-slate-300 uppercase tracking-widest pl-1">
                   {editingProduct ? '✏️ Edit Selected Item' : '✨ Add New Catalog Item'}
                 </h3>
 
                 {/* Form Fields */}
-                <div className="flex flex-col gap-3.5 bg-slate-950/60 p-3.5 rounded-xl border border-slate-850">
+                <div className="flex flex-col gap-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800">
                   
                   <div>
-                    <label className="text-xs md:text-base font-bold text-slate-400 block mb-1">Product Name *</label>
+                    <label className="text-xs font-bold text-slate-400 block mb-1">Product Name *</label>
                     <input
                       type="text"
                       required
                       value={adminName}
                       onChange={(e) => setAdminName(e.target.value)}
                       placeholder="e.g. Organic French Roast"
-                      className="w-full px-3 py-2 md:px-4 md:py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm md:text-base lg:text-lg focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-650 transition"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500 transition"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs md:text-base font-bold text-slate-400 block mb-1">SKU identifier *</label>
+                    <label className="text-xs font-bold text-slate-400 block mb-1">SKU identifier *</label>
                     <input
                       type="text"
                       required
                       value={adminSku}
                       onChange={(e) => setAdminSku(e.target.value)}
                       placeholder="e.g. COF-102"
-                      className="w-full px-3 py-2 md:px-4 md:py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm md:text-base lg:text-lg focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-655 transition"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500 transition"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs md:text-base font-bold text-slate-400 block mb-1">Price (₹) *</label>
+                      <label className="text-xs font-bold text-slate-400 block mb-1">Price (₹) *</label>
                       <input
                         type="number"
                         step="0.01"
@@ -581,11 +581,11 @@ export default function BillingInterface() {
                         value={adminPrice}
                         onChange={(e) => setAdminPrice(e.target.value)}
                         placeholder="0.00"
-                        className="w-full px-3 py-2 md:px-4 md:py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm md:text-base lg:text-lg focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-655 transition"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500 transition"
                       />
                     </div>
                     <div>
-                      <label className="text-xs md:text-base font-bold text-slate-400 block mb-1">Stock Level *</label>
+                      <label className="text-xs font-bold text-slate-400 block mb-1">Stock Level *</label>
                       <input
                         type="number"
                         min="0"
@@ -593,20 +593,20 @@ export default function BillingInterface() {
                         value={adminStock}
                         onChange={(e) => setAdminStock(e.target.value)}
                         placeholder="0"
-                        className="w-full px-3 py-2 md:px-4 md:py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm md:text-base lg:text-lg focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-655 transition"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500 transition"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs md:text-base font-bold text-slate-400 block mb-1">Category *</label>
+                    <label className="text-xs font-bold text-slate-400 block mb-1">Category *</label>
                     <input
                       type="text"
                       required
                       value={adminCategory}
                       onChange={(e) => setAdminCategory(e.target.value)}
                       placeholder="e.g. Coffee, Bakery, Merchandise"
-                      className="w-full px-3 py-2 md:px-4 md:py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm md:text-base lg:text-lg focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-655 transition"
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500 transition"
                     />
                   </div>
 
@@ -616,7 +616,7 @@ export default function BillingInterface() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 md:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-slate-100 font-black text-xs md:text-sm lg:text-base uppercase tracking-widest rounded-xl transition duration-150 shadow-lg shadow-indigo-500/10 disabled:opacity-40"
+                    className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-slate-100 font-bold text-xs md:text-sm uppercase tracking-widest rounded-xl transition duration-150 shadow-lg shadow-indigo-500/10 disabled:opacity-40"
                   >
                     {loading ? 'Processing...' : editingProduct ? '💾 Save Changes' : '✨ Create Product'}
                   </button>
@@ -626,7 +626,7 @@ export default function BillingInterface() {
                       type="button"
                       onClick={handleDeleteProduct}
                       disabled={loading}
-                      className="w-full py-2.5 md:py-3.5 bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 font-black text-xs md:text-sm lg:text-base uppercase tracking-widest rounded-xl border border-rose-500/20 hover:border-rose-500/40 transition duration-150 disabled:opacity-40"
+                      className="w-full py-2 bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 font-bold text-xs md:text-sm uppercase tracking-widest rounded-xl border border-rose-500/20 hover:border-rose-500/40 transition duration-150 disabled:opacity-40"
                     >
                       🗑️ Deactivate Product
                     </button>
@@ -657,7 +657,7 @@ export default function BillingInterface() {
               <form onSubmit={handleCheckout} className="flex-1 flex flex-col gap-4 sticky top-6">
                 
                 {/* Customer Details */}
-                <div className="bg-slate-900/40 border border-slate-850 p-4 rounded-2xl backdrop-blur-md">
+                <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl backdrop-blur-md">
                   <h2 className="text-xs md:text-sm font-black uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
                     👤 Customer Details
                   </h2>
@@ -669,7 +669,7 @@ export default function BillingInterface() {
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         placeholder="Customer Name *"
-                        className="w-full px-3 py-2.5 md:py-3 bg-slate-950 border border-slate-855 rounded-xl text-xs md:text-base focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-650 transition"
+                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition"
                       />
                     </div>
                     <div>
@@ -679,9 +679,9 @@ export default function BillingInterface() {
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         placeholder="WhatsApp Number (e.g. +1234567890) *"
-                        className="w-full px-3 py-2.5 md:py-3 bg-slate-950 border border-slate-855 rounded-xl text-xs md:text-base focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-655 transition"
+                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition"
                       />
-                      <span className="text-[10px] md:text-sm text-slate-400 mt-1 md:mt-1.5 block pl-1">Must include country code starting with '+'</span>
+                      <span className="text-[10px] md:text-xs text-slate-400 mt-1 block pl-1">Must include country code starting with '+'</span>
                     </div>
                     <div>
                       <input
@@ -689,14 +689,14 @@ export default function BillingInterface() {
                         value={customerEmail}
                         onChange={(e) => setCustomerEmail(e.target.value)}
                         placeholder="Email Address (Optional)"
-                        className="w-full px-3 py-2.5 md:py-3 bg-slate-950 border border-slate-855 rounded-xl text-xs md:text-base focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-655 transition"
+                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Selected Items */}
-                <div className="bg-slate-900/40 border border-slate-850 p-4 rounded-2xl flex-1 flex flex-col min-h-[220px]">
+                <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl flex-1 flex flex-col min-h-[220px]">
                   <h2 className="text-xs md:text-sm font-black uppercase tracking-wider text-slate-400 mb-3 flex justify-between items-center">
                     <span>🛒 Selected Items</span>
                     <span className="text-[10px] md:text-xs font-mono lowercase text-slate-500">
@@ -707,31 +707,31 @@ export default function BillingInterface() {
                   {cart.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
                       <span className="text-2xl mb-1 opacity-70">🛒</span>
-                      <p className="text-xs md:text-base text-slate-500">POS Cart is empty.</p>
-                      <p className="text-[10px] md:text-sm text-slate-600 mt-0.5">Click products on the left to add items.</p>
+                      <p className="text-xs md:text-sm text-slate-500">POS Cart is empty.</p>
+                      <p className="text-[10px] md:text-xs text-slate-600 mt-0.5">Click products on the left to add items.</p>
                     </div>
                   ) : (
                     <div className="flex-1 overflow-y-auto max-h-[240px] pr-1 space-y-2 scrollbar-thin scrollbar-thumb-slate-800">
                       {cart.map(item => (
-                        <div key={item.productId} className="flex justify-between items-center bg-slate-950/80 border border-slate-850/80 p-2.5 md:p-3 rounded-xl">
+                        <div key={item.productId} className="flex justify-between items-center bg-slate-950/80 border border-slate-800/80 p-2.5 md:p-3 rounded-xl">
                            <div className="flex-1 pr-2">
-                            <p className="text-xs md:text-base font-black text-slate-200 line-clamp-1">{item.name}</p>
-                            <p className="text-[10px] md:text-sm text-slate-300 mt-0.5 font-semibold">₹{item.price.toFixed(2)} each</p>
+                            <p className="text-xs md:text-sm font-bold text-slate-200 line-clamp-1">{item.name}</p>
+                            <p className="text-[10px] md:text-xs text-slate-400 mt-0.5 font-semibold">₹{item.price.toFixed(2)} each</p>
                           </div>
                           
                           <div className="flex items-center gap-1.5 md:gap-2.5">
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.productId, -1)}
-                              className="h-6 w-6 md:h-9 md:w-9 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-xs md:text-base active:scale-90 transition font-bold"
+                              className="h-6 w-6 md:h-8 md:w-8 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-xs md:text-sm active:scale-90 transition font-bold"
                             >
                               -
                             </button>
-                            <span className="text-xs md:text-base font-mono font-bold w-4 md:w-5 text-center">{item.quantity}</span>
+                            <span className="text-xs md:text-sm font-mono font-bold w-4 md:w-5 text-center">{item.quantity}</span>
                             <button
                               type="button"
                               onClick={() => updateQuantity(item.productId, 1)}
-                              className="h-6 w-6 md:h-9 md:w-9 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-xs md:text-base active:scale-90 transition font-bold"
+                              className="h-6 w-6 md:h-8 md:w-8 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-xs md:text-sm active:scale-90 transition font-bold"
                             >
                               +
                             </button>
@@ -742,21 +742,21 @@ export default function BillingInterface() {
                   )}
 
                   {/* Pricing Breakdown */}
-                  <div className="mt-4 pt-4 border-t border-slate-850 space-y-2 md:space-y-3">
-                    <div className="flex justify-between text-xs md:text-base font-semibold text-slate-400">
+                  <div className="mt-4 pt-4 border-t border-slate-800 space-y-2 md:space-y-3">
+                    <div className="flex justify-between text-xs md:text-sm font-semibold text-slate-400">
                       <span>Subtotal:</span>
-                      <span className="font-mono text-xs md:text-base text-slate-200">₹{billingTotals.subtotal.toFixed(2)}</span>
+                      <span className="font-mono text-xs md:text-sm text-slate-200">₹{billingTotals.subtotal.toFixed(2)}</span>
                     </div>
 
-                    <div className="flex justify-between text-sm md:text-lg font-black text-slate-100 pt-2 border-t border-dashed border-slate-800">
+                    <div className="flex justify-between text-xs md:text-sm font-black text-slate-100 pt-2 border-t border-dashed border-slate-800">
                       <span>Total Amount:</span>
-                      <span className="font-mono text-emerald-400 text-base md:text-2xl lg:text-3xl font-black">₹{billingTotals.total.toFixed(2)}</span>
+                      <span className="font-mono text-emerald-400 text-sm md:text-lg lg:text-xl font-black">₹{billingTotals.total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Checkout Trigger */}
-                <div className="bg-slate-900/40 border border-slate-850 p-4 rounded-2xl flex flex-col gap-3">
+                <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-2xl flex flex-col gap-3">
                   <div>
                     <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-2">
                       💵 Payment Method
@@ -770,7 +770,7 @@ export default function BillingInterface() {
                           className={`py-2 rounded-xl text-xs font-bold border transition duration-150 ${
                             paymentMethod === method
                               ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/60 shadow-inner'
-                              : 'bg-slate-950 border-slate-850 hover:border-slate-700 text-slate-400'
+                              : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-400'
                           }`}
                         >
                           {method}
@@ -782,7 +782,7 @@ export default function BillingInterface() {
                   <button
                     type="submit"
                     disabled={loading || cart.length === 0}
-                    className="w-full py-2.5 md:py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40 disabled:pointer-events-none text-slate-950 font-black text-xs md:text-sm uppercase tracking-widest rounded-xl transition duration-150 shadow-xl shadow-emerald-500/15"
+                    className="w-full py-2.5 md:py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40 disabled:pointer-events-none text-slate-950 font-bold text-xs md:text-sm uppercase tracking-widest rounded-xl transition duration-150 shadow-xl shadow-emerald-500/15"
                   >
                     {loading ? 'Processing POS Bill...' : '⚡ Generate & Send Invoice'}
                   </button>
