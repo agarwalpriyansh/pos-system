@@ -223,7 +223,8 @@ func worker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Client, 
 func sendWhatsAppMessage(cfg Config, client *http.Client, task QueueTask) bool {
 	// 1. Format Beautiful UTF receipt summary
 	messageText := fmt.Sprintf(
-		"🧾 *INVOICE RECEIVED: %s*\n"+
+		"🧾 *INVOICE: %s*\n"+
+		"🏢 *ds dryfruits premium dry fruits store*\n"+
 		"----------------------------------------\n"+
 		"Dear *%s*,\n\n"+
 		"Thank you for shopping with us! Here is a summary of your bill:\n\n"+

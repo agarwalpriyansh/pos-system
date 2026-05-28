@@ -351,9 +351,9 @@ export default function BillingInterface() {
       <header className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900/60 border border-slate-800/80 p-4 rounded-2xl backdrop-blur-md">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-teal-400 to-indigo-400 bg-clip-text text-transparent">
-            RetroPOS billing
+            Ds billing
           </h1>
-          <p className="text-xs text-slate-400 mt-1">Smart Invoicing & Async WhatsApp Broadcasts</p>
+          <p className="text-xs text-slate-400 mt-1">ds dryfruits premium dry fruits store</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           {/* Admin Mode Toggle Button */}
