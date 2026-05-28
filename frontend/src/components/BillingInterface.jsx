@@ -544,35 +544,35 @@ export default function BillingInterface() {
                 </h3>
 
                 {/* Form Fields */}
-                <div className="flex flex-col gap-3 bg-slate-950/60 p-3 rounded-xl border border-slate-850">
+                <div className="flex flex-col gap-3.5 bg-slate-950/60 p-3.5 rounded-xl border border-slate-850">
                   
                   <div>
-                    <label className="text-xs font-bold text-slate-400 block mb-1">Product Name *</label>
+                    <label className="text-xs md:text-base font-bold text-slate-400 block mb-1">Product Name *</label>
                     <input
                       type="text"
                       required
                       value={adminName}
                       onChange={(e) => setAdminName(e.target.value)}
                       placeholder="e.g. Organic French Roast"
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-600 transition"
+                      className="w-full px-3 py-2 md:px-4 md:py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm md:text-base lg:text-lg focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-650 transition"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-400 block mb-1">SKU identifier *</label>
+                    <label className="text-xs md:text-base font-bold text-slate-400 block mb-1">SKU identifier *</label>
                     <input
                       type="text"
                       required
                       value={adminSku}
                       onChange={(e) => setAdminSku(e.target.value)}
                       placeholder="e.g. COF-102"
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-600 transition"
+                      className="w-full px-3 py-2 md:px-4 md:py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm md:text-base lg:text-lg focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-655 transition"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-bold text-slate-400 block mb-1">Price (₹) *</label>
+                      <label className="text-xs md:text-base font-bold text-slate-400 block mb-1">Price (₹) *</label>
                       <input
                         type="number"
                         step="0.01"
@@ -581,11 +581,11 @@ export default function BillingInterface() {
                         value={adminPrice}
                         onChange={(e) => setAdminPrice(e.target.value)}
                         placeholder="0.00"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-600 transition"
+                        className="w-full px-3 py-2 md:px-4 md:py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm md:text-base lg:text-lg focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-655 transition"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-400 block mb-1">Stock Level *</label>
+                      <label className="text-xs md:text-base font-bold text-slate-400 block mb-1">Stock Level *</label>
                       <input
                         type="number"
                         min="0"
@@ -593,20 +593,20 @@ export default function BillingInterface() {
                         value={adminStock}
                         onChange={(e) => setAdminStock(e.target.value)}
                         placeholder="0"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-600 transition"
+                        className="w-full px-3 py-2 md:px-4 md:py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm md:text-base lg:text-lg focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-655 transition"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-400 block mb-1">Category *</label>
+                    <label className="text-xs md:text-base font-bold text-slate-400 block mb-1">Category *</label>
                     <input
                       type="text"
                       required
                       value={adminCategory}
                       onChange={(e) => setAdminCategory(e.target.value)}
                       placeholder="e.g. Coffee, Bakery, Merchandise"
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-600 transition"
+                      className="w-full px-3 py-2 md:px-4 md:py-3.5 bg-slate-900 border border-slate-800 rounded-xl text-sm md:text-base lg:text-lg focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-655 transition"
                     />
                   </div>
 
@@ -616,7 +616,7 @@ export default function BillingInterface() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-slate-100 font-extrabold text-xs uppercase tracking-widest rounded-xl transition duration-150 shadow-lg shadow-indigo-500/10 disabled:opacity-40"
+                    className="w-full py-3 md:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-slate-100 font-black text-xs md:text-sm lg:text-base uppercase tracking-widest rounded-xl transition duration-150 shadow-lg shadow-indigo-500/10 disabled:opacity-40"
                   >
                     {loading ? 'Processing...' : editingProduct ? '💾 Save Changes' : '✨ Create Product'}
                   </button>
@@ -626,7 +626,7 @@ export default function BillingInterface() {
                       type="button"
                       onClick={handleDeleteProduct}
                       disabled={loading}
-                      className="w-full py-2.5 bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 font-bold text-xs uppercase tracking-widest rounded-xl border border-rose-500/20 hover:border-rose-500/40 transition duration-150 disabled:opacity-40"
+                      className="w-full py-2.5 md:py-3.5 bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 font-black text-xs md:text-sm lg:text-base uppercase tracking-widest rounded-xl border border-rose-500/20 hover:border-rose-500/40 transition duration-150 disabled:opacity-40"
                     >
                       🗑️ Deactivate Product
                     </button>
