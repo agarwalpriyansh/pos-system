@@ -10,6 +10,7 @@ const getRedisClient = () => {
     redisClient = new Redis({
       host,
       port,
+      password: process.env.REDIS_PASSWORD || undefined,
       maxRetriesPerRequest: null, // Critical parameter for queue workflows
       retryStrategy(times) {
         const delay = Math.min(times * 50, 2000);
