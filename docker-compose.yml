@@ -1,16 +1,6 @@
 version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:latest
-    container_name: pos-mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    networks:
-      - pos-network
-
   redis:
     image: redis:alpine
     container_name: pos-redis
@@ -22,9 +12,9 @@ services:
       - pos-network
 
 volumes:
-  mongo-data:
   redis-data:
 
 networks:
   pos-network:
     driver: bridge
+
