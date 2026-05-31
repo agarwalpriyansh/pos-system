@@ -192,9 +192,9 @@ export default function BillingInterface() {
       return;
     }
 
-    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-    if (!phoneRegex.test(customerPhone)) {
-      triggerNotification('error', 'Please provide a valid E.164 phone number (e.g. +1234567890)');
+    const isTenDigits = /^\d{10}$/;
+    if (!isTenDigits.test(customerPhone)) {
+      triggerNotification('error', 'Please provide a valid 10-digit mobile number');
       return;
     }
 
@@ -202,7 +202,7 @@ export default function BillingInterface() {
 
     try {
       const payload = {
-        customerPhone,
+        customerPhone: `+91 ${customerPhone}`,
         customerName,
         customerEmail: customerEmail || undefined,
         items: cart.map(item => ({
@@ -734,16 +734,19 @@ export default function BillingInterface() {
                         className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition"
                       />
                     </div>
-                    <div>
+                    <div className="relative flex items-center w-full">
+                      <span className="absolute left-3 text-xs md:text-sm text-slate-400 font-mono select-none pointer-events-none">+91</span>
                       <input
                         type="tel"
                         required
                         value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="WhatsApp Number (e.g. +1234567890) *"
-                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition"
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          setCustomerPhone(val);
+                        }}
+                        placeholder="WhatsApp Number (10 digits) *"
+                        className="w-full pl-11 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition font-mono"
                       />
-                      <span className="text-[10px] md:text-xs text-slate-400 mt-1 block pl-1">Must include country code starting with '+'</span>
                     </div>
                     <div>
                       <input

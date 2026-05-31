@@ -6,7 +6,7 @@ const CustomerSchema = new mongoose.Schema({
     required: [true, 'Customer phone number is required'],
     unique: true,
     trim: true,
-    match: [/^\+?[1-9]\d{1,14}$/, 'Please fill a valid phone number in E.164 format (e.g. +1234567890)']
+    match: [/^\+?[1-9][\d\s]{1,15}$/, 'Please fill a valid phone number']
   },
   name: {
     type: String,
