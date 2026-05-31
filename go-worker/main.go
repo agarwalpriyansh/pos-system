@@ -212,6 +212,9 @@ func worker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Client, 
 			
 			success := sendWhatsAppMessage(cfg, client, task)
 			
+			// Release distributed lock so the bill can be processed again if re-queued
+			rdb.Del(ctx, lockKey)
+			
 			// Optional: Notify backend service of completion to update DB
 			// In production, updating DB state ensures real-time statuses in MERN dashboard
 			log.Printf("[Worker Thread #%d] Completed processing for invoice %s. Success = %t", id, task.InvoiceNumber, success)
@@ -240,10 +243,15 @@ func sendWhatsAppMessage(cfg Config, client *http.Client, task QueueTask) bool {
 
 	// 2. Prepare HTTP Payload matching WhatsApp Cloud API Specification
 	// (Using Custom Text Template message request format)
+	// Sanitize phone number (Meta API expects digits only, e.g. 916376643123)
+	toPhone := strings.TrimPrefix(task.CustomerPhone, "+")
+	toPhone = strings.ReplaceAll(toPhone, " ", "")
+	toPhone = strings.ReplaceAll(toPhone, "-", "")
+
 	whatsappPayload := map[string]interface{}{
 		"messaging_product": "whatsapp",
 		"recipient_type":    "individual",
-		"to":                task.CustomerPhone,
+		"to":                toPhone,
 		"type":              "text",
 		"text": map[string]interface{}{
 			"preview_url": false,
