@@ -121,6 +121,23 @@ export default function BillingInterface() {
     });
   }, [products, searchQuery, selectedCategory]);
 
+  // Derive unique customers based on normalized 10-digit phone numbers
+  const uniqueCustomersCount = useMemo(() => {
+    const uniquePhones = new Set();
+    customers.forEach(c => {
+      if (c.phone) {
+        // Strip everything except digits and take the last 10 digits
+        const digits = c.phone.replace(/\D/g, '');
+        if (digits.length >= 10) {
+          uniquePhones.add(digits.slice(-10));
+        } else if (digits.length > 0) {
+          uniquePhones.add(digits);
+        }
+      }
+    });
+    return uniquePhones.size;
+  }, [customers]);
+
   // Add Item to Cart
   const addToCart = (product) => {
     const existing = cart.find(item => item.productId === product._id);
@@ -898,7 +915,7 @@ export default function BillingInterface() {
                 <div className="bg-slate-900/40 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-indigo-500/30 transition duration-200">
                   <div>
                     <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500 block mb-1">Total Customers</span>
-                    <h3 className="text-2xl font-black text-slate-100">{customers.length}</h3>
+                    <h3 className="text-2xl font-black text-slate-100">{uniqueCustomersCount}</h3>
                   </div>
                   <span className="text-xs text-indigo-400 font-semibold mt-3 flex items-center gap-1">
                     👥 Registered clients
