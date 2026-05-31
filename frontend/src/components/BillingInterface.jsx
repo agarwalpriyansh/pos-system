@@ -10,14 +10,55 @@ export default function BillingInterface() {
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(true);
 
-  // Admin Mode States
-  const [adminMode, setAdminMode] = useState(false);
+  // Admin & View States
+  const [currentView, setCurrentView] = useState('pos'); // 'pos', 'admin', 'dashboard'
+  const adminMode = currentView === 'admin';
   const [editingProduct, setEditingProduct] = useState(null); // null = "Add Mode", object = "Edit Mode"
   const [adminName, setAdminName] = useState('');
   const [adminSku, setAdminSku] = useState('');
   const [adminPrice, setAdminPrice] = useState('');
   const [adminCategory, setAdminCategory] = useState('');
   const [adminStock, setAdminStock] = useState('');
+
+  // Dashboard & History States
+  const [bills, setBills] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [dashboardTab, setDashboardTab] = useState('bills'); // 'bills' | 'customers'
+  const [billsSearch, setBillsSearch] = useState('');
+  const [customersSearch, setCustomersSearch] = useState('');
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+
+  const fetchDashboardData = async () => {
+    try {
+      setDashboardLoading(true);
+      const [billsRes, customersRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/bills`),
+        fetch(`${API_BASE_URL}/customers`)
+      ]);
+      
+      if (billsRes.ok) {
+        const billsData = await billsRes.json();
+        setBills(billsData);
+      }
+      
+      if (customersRes.ok) {
+        const customersData = await customersRes.json();
+        setCustomers(customersData);
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      triggerNotification('error', 'Failed to fetch dashboard records');
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (currentView === 'dashboard') {
+      fetchDashboardData();
+    }
+  }, [currentView]);
 
   // Cart & Invoice State
   const [cart, setCart] = useState([]);
@@ -345,24 +386,51 @@ export default function BillingInterface() {
           <p className="text-xs md:text-sm text-slate-400 mt-1">DS Dryfruits, A Premium Dryfruits store</p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          {/* Admin Mode Toggle Button */}
+          {/* View Toggles */}
           <button
             onClick={() => {
-              setAdminMode(!adminMode);
+              setCurrentView('pos');
               clearAdminForm();
             }}
             className={`flex-1 sm:flex-initial text-xs px-4 py-2 font-extrabold rounded-xl transition duration-150 active:scale-95 border ${
-              adminMode 
-                ? 'bg-indigo-600 hover:bg-indigo-500 border-indigo-500 text-slate-100 shadow-md shadow-indigo-500/10' 
+              currentView === 'pos'
+                ? 'bg-emerald-600 border-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/10'
                 : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
             }`}
           >
-            🛠️ {adminMode ? 'Exit Admin Mode' : 'Manage Products'}
+            🛒 POS Billing
           </button>
 
-          
+          <button
+            onClick={() => {
+              setCurrentView('dashboard');
+              clearAdminForm();
+            }}
+            className={`flex-1 sm:flex-initial text-xs px-4 py-2 font-extrabold rounded-xl transition duration-150 active:scale-95 border ${
+              currentView === 'dashboard'
+                ? 'bg-cyan-600 border-cyan-500 text-slate-100 font-bold shadow-md shadow-cyan-500/10'
+                : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+            }`}
+          >
+            📊 Dashboard & History
+          </button>
+
+          <button
+            onClick={() => {
+              setCurrentView('admin');
+              clearAdminForm();
+            }}
+            className={`flex-1 sm:flex-initial text-xs px-4 py-2 font-extrabold rounded-xl transition duration-150 active:scale-95 border ${
+              currentView === 'admin'
+                ? 'bg-indigo-600 border-indigo-500 text-slate-100 font-bold shadow-md shadow-indigo-500/10'
+                : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+            }`}
+          >
+            🛠️ Manage Products
+          </button>
+
           {/* Mobile floating Cart indicator toggler */}
-          {!adminMode && (
+          {currentView === 'pos' && (
             <button
               onClick={() => setShowMobileCart(!showMobileCart)}
               className="md:hidden flex-1 flex items-center justify-center gap-2 text-xs px-4 py-2 bg-emerald-500 text-slate-950 font-bold rounded-xl active:scale-95 transition duration-150 shadow-lg shadow-emerald-500/20"
@@ -374,7 +442,8 @@ export default function BillingInterface() {
       </header>
 
       {/* Main Layout Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+      {currentView !== 'dashboard' ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
         
         {/* Left Side: Product Selector (Catalog) */}
         <div className="md:col-span-2 flex flex-col gap-4">
@@ -786,6 +855,404 @@ export default function BillingInterface() {
           )}
         </div>
       </div>
+      ) : (
+        /* Render Dashboard View */
+        <div className="flex-1 flex flex-col gap-6">
+          {/* Dashboard Overview KPI Cards */}
+          {dashboardLoading ? (
+            <div className="flex-1 flex items-center justify-center min-h-[400px]">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-400"></div>
+            </div>
+          ) : (
+            <>
+              {/* KPI Metrics */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Metric: Total Revenue */}
+                <div className="bg-slate-900/40 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-cyan-500/30 transition duration-200">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500 block mb-1">Total Revenue</span>
+                    <h3 className="text-2xl font-black text-slate-100">
+                      ₹{bills.reduce((sum, b) => sum + (b.total || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </h3>
+                  </div>
+                  <span className="text-xs text-cyan-400 font-semibold mt-3 flex items-center gap-1">
+                    💰 Cumulative sales
+                  </span>
+                </div>
+
+                {/* Metric: Total Invoices */}
+                <div className="bg-slate-900/40 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-emerald-500/30 transition duration-200">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500 block mb-1">Total Invoices</span>
+                    <h3 className="text-2xl font-black text-slate-100">{bills.length}</h3>
+                  </div>
+                  <span className="text-xs text-emerald-400 font-semibold mt-3 flex items-center gap-1">
+                    📄 Generated bills
+                  </span>
+                </div>
+
+                {/* Metric: Total Customers */}
+                <div className="bg-slate-900/40 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-indigo-500/30 transition duration-200">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500 block mb-1">Total Customers</span>
+                    <h3 className="text-2xl font-black text-slate-100">{customers.length}</h3>
+                  </div>
+                  <span className="text-xs text-indigo-400 font-semibold mt-3 flex items-center gap-1">
+                    👥 Registered clients
+                  </span>
+                </div>
+
+                {/* Metric: Message Broadcasts */}
+                <div className="bg-slate-900/40 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-amber-500/30 transition duration-200">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500 block mb-1">Broadcast Delivery</span>
+                    <div className="text-xs space-y-1 mt-1 text-slate-300">
+                      <div className="flex justify-between items-center">
+                        <span>WhatsApp Sent:</span>
+                        <span className="font-mono font-bold text-emerald-400">
+                          {bills.filter(b => b.whatsappStatus === 'Sent').length} / {bills.length}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>Email Sent:</span>
+                        <span className="font-mono font-bold text-emerald-400">
+                          {bills.filter(b => b.emailStatus === 'Sent').length} / {bills.filter(b => b.emailStatus && b.emailStatus !== 'N/A').length}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-slate-400 mt-2 block border-t border-slate-800/80 pt-1.5">
+                    ⚡ WhatsApp & Email dispatch rate
+                  </span>
+                </div>
+              </div>
+
+              {/* Dashboard Content Panel */}
+              <div className="bg-slate-900/30 border border-slate-800/80 p-4 sm:p-6 rounded-2xl backdrop-blur-md flex flex-col gap-4 flex-1">
+                {/* Search, Filter, Sub-tab bar */}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-b border-slate-800/80 pb-4">
+                  {/* Left Side: Sub-tabs */}
+                  <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-800 self-start">
+                    <button
+                      onClick={() => setDashboardTab('bills')}
+                      className={`px-4 py-2 text-xs font-bold rounded-lg transition duration-150 whitespace-nowrap ${
+                        dashboardTab === 'bills'
+                          ? 'bg-cyan-600 text-slate-100 shadow-md'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      📜 Invoices History ({bills.length})
+                    </button>
+                    <button
+                      onClick={() => setDashboardTab('customers')}
+                      className={`px-4 py-2 text-xs font-bold rounded-lg transition duration-150 whitespace-nowrap ${
+                        dashboardTab === 'customers'
+                          ? 'bg-cyan-600 text-slate-100 shadow-md'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      👥 Customers List ({customers.length})
+                    </button>
+                  </div>
+
+                  {/* Right Side: Search bar */}
+                  <div className="relative w-full sm:max-w-xs">
+                    {dashboardTab === 'bills' ? (
+                      <input
+                        type="text"
+                        value={billsSearch}
+                        onChange={(e) => setBillsSearch(e.target.value)}
+                        placeholder="Search invoices by # or Customer..."
+                        className="w-full pl-10 pr-4 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-xs focus:outline-none focus:border-cyan-500/80 text-slate-100 placeholder-slate-500 transition duration-150"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={customersSearch}
+                        onChange={(e) => setCustomersSearch(e.target.value)}
+                        placeholder="Search customers by name or phone..."
+                        className="w-full pl-10 pr-4 py-2 bg-slate-950/80 border border-slate-800 rounded-xl text-xs focus:outline-none focus:border-cyan-500/80 text-slate-100 placeholder-slate-500 transition duration-150"
+                      />
+                    )}
+                    <span className="absolute left-3.5 top-2.5 text-xs text-slate-500">🔍</span>
+                  </div>
+                </div>
+
+                {/* Sub-tab view: Bills Table */}
+                {dashboardTab === 'bills' ? (
+                  <div className="overflow-x-auto">
+                    {bills.filter(bill => {
+                      const search = billsSearch.toLowerCase();
+                      const invMatches = bill.invoiceNumber?.toLowerCase().includes(search);
+                      const nameMatches = bill.customer?.name?.toLowerCase().includes(search);
+                      const phoneMatches = bill.customer?.phone?.includes(search);
+                      return invMatches || nameMatches || phoneMatches;
+                    }).length === 0 ? (
+                      <div className="text-center p-8 border border-dashed border-slate-800/80 rounded-2xl my-4">
+                        <span className="text-3xl mb-2 block">📄</span>
+                        <p className="text-slate-400 font-semibold text-xs">No invoices found matching criteria.</p>
+                      </div>
+                    ) : (
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-800 text-slate-400 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">
+                            <th className="py-3 px-4">Invoice #</th>
+                            <th className="py-3 px-4">Customer</th>
+                            <th className="py-3 px-4">Date</th>
+                            <th className="py-3 px-4">Total</th>
+                            <th className="py-3 px-4">Payment</th>
+                            <th className="py-3 px-4">WhatsApp</th>
+                            <th className="py-3 px-4">Email</th>
+                            <th className="py-3 px-4 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60 text-xs">
+                          {bills
+                            .filter(bill => {
+                              const search = billsSearch.toLowerCase();
+                              const invMatches = bill.invoiceNumber?.toLowerCase().includes(search);
+                              const nameMatches = bill.customer?.name?.toLowerCase().includes(search);
+                              const phoneMatches = bill.customer?.phone?.includes(search);
+                              return invMatches || nameMatches || phoneMatches;
+                            })
+                            .map(bill => (
+                              <tr key={bill._id} className="hover:bg-slate-900/30 transition duration-150">
+                                <td className="py-3 px-4 font-mono font-bold text-cyan-400">{bill.invoiceNumber}</td>
+                                <td className="py-3 px-4">
+                                  <div className="font-bold text-slate-200">{bill.customer?.name || 'Walk-in'}</div>
+                                  <div className="text-[10px] text-slate-500">{bill.customer?.phone}</div>
+                                </td>
+                                <td className="py-3 px-4 text-slate-400">
+                                  {new Date(bill.createdAt).toLocaleDateString('en-IN', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </td>
+                                <td className="py-3 px-4 font-bold text-emerald-400 font-mono">₹{bill.total.toFixed(2)}</td>
+                                <td className="py-3 px-4">
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-950 border border-slate-800 text-slate-300">
+                                    {bill.paymentMethod}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                    bill.whatsappStatus === 'Sent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                    bill.whatsappStatus === 'Failed' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                    'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                  }`}>
+                                    {bill.whatsappStatus}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                    bill.emailStatus === 'Sent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                    bill.emailStatus === 'Failed' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                    bill.emailStatus === 'N/A' ? 'bg-slate-900 text-slate-500 border-transparent' :
+                                    'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                  }`}>
+                                    {bill.emailStatus || 'N/A'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-right">
+                                  <button
+                                    onClick={() => setSelectedInvoice(bill)}
+                                    className="px-3 py-1 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-cyan-400 font-bold rounded-lg transition active:scale-95 text-[10px] md:text-xs"
+                                  >
+                                    📄 View Receipt
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                ) : (
+                  /* Sub-tab view: Customers Table */
+                  <div className="overflow-x-auto">
+                    {customers.filter(cust => {
+                      const search = customersSearch.toLowerCase();
+                      const nameMatches = cust.name?.toLowerCase().includes(search);
+                      const phoneMatches = cust.phone?.includes(search);
+                      const emailMatches = cust.email?.toLowerCase().includes(search);
+                      return nameMatches || phoneMatches || emailMatches;
+                    }).length === 0 ? (
+                      <div className="text-center p-8 border border-dashed border-slate-800/80 rounded-2xl my-4">
+                        <span className="text-3xl mb-2 block">👥</span>
+                        <p className="text-slate-400 font-semibold text-xs">No customers found matching criteria.</p>
+                      </div>
+                    ) : (
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-slate-800 text-slate-400 text-[10px] md:text-xs uppercase font-extrabold tracking-wider">
+                            <th className="py-3 px-4">Customer Details</th>
+                            <th className="py-3 px-4">WhatsApp Contact</th>
+                            <th className="py-3 px-4">Email</th>
+                            <th className="py-3 px-4">Registered Date</th>
+                            <th className="py-3 px-4 text-right">Total Purchase Spent</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60 text-xs">
+                          {customers
+                            .filter(cust => {
+                              const search = customersSearch.toLowerCase();
+                              const nameMatches = cust.name?.toLowerCase().includes(search);
+                              const phoneMatches = cust.phone?.includes(search);
+                              const emailMatches = cust.email?.toLowerCase().includes(search);
+                              return nameMatches || phoneMatches || emailMatches;
+                            })
+                            .map(cust => {
+                              const isVIP = (cust.totalSpent || 0) >= 5000;
+                              return (
+                                <tr key={cust._id} className="hover:bg-slate-900/30 transition duration-150">
+                                  <td className="py-3 px-4 font-bold text-slate-200">
+                                    <div className="flex items-center gap-1.5">
+                                      {cust.name}
+                                      {isVIP && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase tracking-widest font-black flex items-center gap-0.5">
+                                          👑 VIP
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-4 font-mono text-slate-300">{cust.phone}</td>
+                                  <td className="py-3 px-4 text-slate-400">{cust.email || <em className="text-slate-600">No Email</em>}</td>
+                                  <td className="py-3 px-4 text-slate-400">
+                                    {new Date(cust.createdAt).toLocaleDateString('en-IN', {
+                                      day: '2-digit',
+                                      month: 'short',
+                                      year: 'numeric'
+                                    })}
+                                  </td>
+                                  <td className="py-3 px-4 text-right font-black text-emerald-400 font-mono text-sm">
+                                    ₹{(cust.totalSpent || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Invoice Detailed Receipt Modal Popup */}
+      {selectedInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white text-slate-900 rounded-3xl w-full max-w-md p-6 shadow-2xl flex flex-col gap-4 border border-slate-200 font-sans max-h-[90vh] overflow-y-auto">
+            {/* Header: Shop details */}
+            <div className="text-center pb-4 border-b border-dashed border-slate-300">
+              <h2 className="text-lg font-black tracking-widest text-slate-800 uppercase">DS DRYFRUITS</h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">A Premium Dryfruits Store</p>
+              <p className="text-[10px] text-slate-500">Contact: ds.dryfruits@gmail.com</p>
+            </div>
+
+            {/* Receipt Summary */}
+            <div className="space-y-1.5 text-xs text-slate-600">
+              <div className="flex justify-between">
+                <span className="font-semibold">Invoice Number:</span>
+                <span className="font-mono font-bold text-slate-800">{selectedInvoice.invoiceNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Date & Time:</span>
+                <span className="font-medium text-slate-800">
+                  {new Date(selectedInvoice.createdAt).toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-semibold">Payment Method:</span>
+                <span className="font-bold text-slate-800">{selectedInvoice.paymentMethod}</span>
+              </div>
+              
+              <div className="border-t border-slate-200 pt-2 mt-2">
+                <div className="flex justify-between">
+                  <span className="font-semibold">Customer Name:</span>
+                  <span className="font-bold text-slate-800">{selectedInvoice.customer?.name || 'Walk-in Customer'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">WhatsApp Number:</span>
+                  <span className="font-mono text-slate-800">{selectedInvoice.customer?.phone}</span>
+                </div>
+                {selectedInvoice.customer?.email && (
+                  <div className="flex justify-between">
+                    <span className="font-semibold">Email:</span>
+                    <span className="text-slate-800">{selectedInvoice.customer.email}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Itemized Table */}
+            <div className="border-t border-slate-200 pt-3 mt-1">
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-2">Itemized Breakdown</span>
+              <div className="space-y-2">
+                {selectedInvoice.items?.map((item, idx) => (
+                  <div key={item._id || idx} className="flex justify-between items-start text-xs">
+                    <div className="flex-1 pr-4">
+                      <span className="font-bold text-slate-800 block leading-tight">{item.name}</span>
+                      <span className="text-[10px] text-slate-500 font-semibold">{item.quantity}x @ ₹{item.price.toFixed(2)}</span>
+                    </div>
+                    <span className="font-mono font-bold text-slate-800">₹{item.total.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Calculations and totals */}
+            <div className="border-t border-dashed border-slate-300 pt-3 mt-2 space-y-1.5">
+              <div className="flex justify-between text-xs text-slate-500 font-semibold">
+                <span>Subtotal Amount:</span>
+                <span className="font-mono">₹{selectedInvoice.subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-slate-800 font-black border-t border-slate-200/60 pt-2 mt-1">
+                <span>Grand Total:</span>
+                <span className="font-mono text-emerald-600 text-lg">₹{selectedInvoice.total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Broadcast Delivery Info */}
+            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3 text-[11px] text-slate-500 space-y-1 mt-1">
+              <span className="font-bold uppercase tracking-wider text-slate-400 text-[9px] block">Broadcast Statuses</span>
+              <div className="flex justify-between">
+                <span>WhatsApp Broadcast:</span>
+                <span className={`font-bold ${
+                  selectedInvoice.whatsappStatus === 'Sent' ? 'text-emerald-600' :
+                  selectedInvoice.whatsappStatus === 'Failed' ? 'text-rose-600' : 'text-amber-600'
+                }`}>{selectedInvoice.whatsappStatus}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Email Receipt Status:</span>
+                <span className={`font-bold ${
+                  selectedInvoice.emailStatus === 'Sent' ? 'text-emerald-600' :
+                  selectedInvoice.emailStatus === 'Failed' ? 'text-rose-600' : 'text-amber-600'
+                }`}>{selectedInvoice.emailStatus || 'N/A'}</span>
+              </div>
+            </div>
+
+            {/* Close receipt trigger */}
+            <button
+              onClick={() => setSelectedInvoice(null)}
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-100 font-bold text-xs uppercase tracking-widest rounded-xl transition duration-150 shadow-md shadow-slate-900/10 active:scale-95"
+            >
+              ✕ Close Receipt
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

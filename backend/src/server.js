@@ -19,6 +19,7 @@ app.use(express.json());
 // Routes
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/bills', require('./routes/billRoutes'));
+app.use('/api/customers', require('./routes/customerRoutes'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
