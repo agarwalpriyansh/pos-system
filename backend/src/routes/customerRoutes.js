@@ -12,4 +12,21 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Search customer by phone number (Indexed, highly performant)
+router.get('/search', async (req, res) => {
+  try {
+    const { phone } = req.query;
+    if (!phone) {
+      return res.status(400).json({ error: 'Phone number parameter is required' });
+    }
+    const customer = await Customer.findOne({ phone });
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer not found' });
+    }
+    res.json(customer);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

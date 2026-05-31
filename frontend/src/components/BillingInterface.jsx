@@ -73,6 +73,32 @@ export default function BillingInterface() {
   const [notification, setNotification] = useState(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
 
+  // Autofill customer name and email if phone is registered
+  useEffect(() => {
+    const fetchRegisteredCustomer = async () => {
+      if (customerPhone.length === 10) {
+        try {
+          const formattedPhone = `+91 ${customerPhone}`;
+          const res = await fetch(`${API_BASE_URL}/customers/search?phone=${encodeURIComponent(formattedPhone)}`);
+          if (res.ok) {
+            const customer = await res.json();
+            setCustomerName(customer.name || '');
+            if (customer.email) {
+              setCustomerEmail(customer.email);
+            } else {
+              setCustomerEmail('');
+            }
+            triggerNotification('info', `Autofilled returning customer: ${customer.name}`);
+          }
+        } catch (err) {
+          console.warn('Unable to query customer database', err);
+        }
+      }
+    };
+    
+    fetchRegisteredCustomer();
+  }, [customerPhone]);
+
   // Fetch products catalog
   const fetchProducts = async () => {
     try {
