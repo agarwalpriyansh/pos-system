@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/smtp"
 	"os"
 	"os/signal"
 	"strconv"
@@ -31,6 +32,12 @@ type Config struct {
 	WhatsAppAPIURL    string
 	MockWhatsApp      bool
 	BackendURL        string
+	SMTPHost          string
+	SMTPPort          int
+	SMTPUsername      string
+	SMTPPassword      string
+	SMTPFromEmail     string
+	MockEmail         bool
 }
 
 // QueueTask represents the structural schema pushed by Node.js
@@ -39,6 +46,7 @@ type QueueTask struct {
 	InvoiceNumber string  `json:"invoiceNumber"`
 	CustomerPhone string  `json:"customerPhone"`
 	CustomerName  string  `json:"customerName"`
+	CustomerEmail string  `json:"customerEmail"`
 	Total         float64 `json:"total"`
 	ItemsSummary  string  `json:"itemsSummary"`
 }
@@ -54,7 +62,13 @@ func loadConfig() Config {
 		redisDB = 0
 	}
 
+	smtpPort, err := strconv.Atoi(getEnv("SMTP_PORT", "587"))
+	if err != nil {
+		smtpPort = 587
+	}
+
 	mockWhatsApp := getEnv("MOCK_WHATSAPP_API", "true") == "true"
+	mockEmail := getEnv("MOCK_EMAIL_API", "true") == "true"
 
 	return Config{
 		RedisAddr:       getEnv("REDIS_ADDR", "localhost:6379"),
@@ -67,6 +81,12 @@ func loadConfig() Config {
 		WhatsAppAPIURL:  getEnv("WHATSAPP_API_URL", "https://graph.facebook.com/v18.0"),
 		MockWhatsApp:    mockWhatsApp,
 		BackendURL:      getEnv("BACKEND_URL", "http://localhost:5000"),
+		SMTPHost:        getEnv("SMTP_HOST", "smtp.gmail.com"),
+		SMTPPort:        smtpPort,
+		SMTPUsername:    getEnv("SMTP_USERNAME", ""),
+		SMTPPassword:    getEnv("SMTP_PASSWORD", ""),
+		SMTPFromEmail:   getEnv("SMTP_FROM_EMAIL", ""),
+		MockEmail:       mockEmail,
 	}
 }
 
@@ -96,9 +116,9 @@ func getEnv(key, fallback string) string {
 
 func main() {
 	config := loadConfig()
-	log.Printf("[Worker Init] Starting POS WhatsApp service worker...")
-	log.Printf("[Worker Init] Configuration: RedisAddr=%s, Concurrency=%d, MockMode=%t", 
-		config.RedisAddr, config.WorkerCount, config.MockWhatsApp)
+	log.Printf("[Worker Init] Starting POS WhatsApp/Email service worker...")
+	log.Printf("[Worker Init] Configuration: RedisAddr=%s, Concurrency=%d, MockModeWhatsApp=%t, MockModeEmail=%t", 
+		config.RedisAddr, config.WorkerCount, config.MockWhatsApp, config.MockEmail)
 
 	// Initialize Redis
 	rdb := redis.NewClient(&redis.Options{
@@ -210,7 +230,17 @@ func worker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Client, 
 			// Task processed under locked protection
 			log.Printf("[Worker Thread #%d] Lock acquired for Bill ID %s. Commencing dispatch...", id, task.BillID)
 			
-			success := sendWhatsAppMessage(cfg, client, task)
+			successWhatsApp := sendWhatsAppMessage(cfg, client, task)
+			
+			var successEmail bool
+			if task.CustomerEmail != "" {
+				successEmail = sendEmailMessage(cfg, task)
+			} else {
+				log.Printf("[Worker Thread #%d] No email provided for customer %s. Skipping email dispatch.", id, task.CustomerName)
+				successEmail = true
+			}
+			
+			success := successWhatsApp && successEmail
 			
 			// Release distributed lock so the bill can be processed again if re-queued
 			rdb.Del(ctx, lockKey)
@@ -314,4 +344,127 @@ func formatItems(summary string) string {
 		formatted = append(formatted, fmt.Sprintf("• %s", item))
 	}
 	return strings.Join(formatted, "\n")
+}
+
+// Formats HTML email receipt layout & executes SMTP transmission
+func sendEmailMessage(cfg Config, task QueueTask) bool {
+	subject := fmt.Sprintf("Invoice %s from DS Dryfruits Store", task.InvoiceNumber)
+	
+	// Format items into HTML table rows
+	var itemsRows strings.Builder
+	items := strings.Split(task.ItemsSummary, ", ")
+	for _, item := range items {
+		itemsRows.WriteString(fmt.Sprintf(`
+			<tr>
+				<td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155;">%s</td>
+			</tr>`, item))
+	}
+
+	htmlBody := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DS Dryfruits Invoice</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; -webkit-font-smoothing: antialiased;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #10b981 0%%, #14b8a6 100%%); padding: 32px 24px; text-align: center; color: #ffffff;">
+            <span style="font-size: 40px; margin-bottom: 8px; display: inline-block;">🧾</span>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800; tracking-tight: -0.025em;">DS Dryfruits</h1>
+            <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9; font-weight: 500;">Premium Dryfruits Store</p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 32px 24px;">
+            <h2 style="margin-top: 0; margin-bottom: 16px; font-size: 18px; font-weight: 700; color: #0f172a;">Invoice Summary</h2>
+            <p style="margin-top: 0; margin-bottom: 24px; font-size: 15px; color: #475569; line-height: 1.5;">
+                Dear <strong>%s</strong>,<br><br>
+                Thank you for shopping with DS Dryfruits! Your order has been successfully processed. Here is your purchase receipt:
+            </p>
+            
+            <!-- Metadata Grid -->
+            <div style="background-color: #f1f5f9; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+                <table style="width: 100%%; border-collapse: collapse; font-size: 14px;">
+                    <tr>
+                        <td style="color: #64748b; padding-bottom: 8px; font-weight: 600;">Invoice Number:</td>
+                        <td style="color: #334155; text-align: right; padding-bottom: 8px; font-weight: 700;">%s</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #64748b; font-weight: 600;">Date:</td>
+                        <td style="color: #334155; text-align: right; font-weight: 500;">%s</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Items Table -->
+            <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">Items Purchased</h3>
+            <table style="width: 100%%; border-collapse: collapse; margin-bottom: 24px;">
+                <thead>
+                    <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                        <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Product Detail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    %s
+                </tbody>
+            </table>
+            
+            <!-- Total -->
+            <div style="border-top: 2px dashed #e2e8f0; padding-top: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+                <span style="font-size: 16px; font-weight: 700; color: #0f172a;">Total Paid:</span>
+                <span style="font-size: 24px; font-weight: 800; color: #10b981;">₹%.2f</span>
+            </div>
+            
+            <!-- Footer Callout -->
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 24px; text-align: center;">
+                <p style="margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.5;">
+                    If you have any questions or concerns regarding this receipt, please do not hesitate to contact us by replying to this email.
+                </p>
+                <p style="margin: 8px 0 0 0; font-size: 13px; font-weight: 600; color: #10b981;">
+                    Thank you for your business!
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`,
+		task.CustomerName,
+		task.InvoiceNumber,
+		time.Now().Format("Jan 02, 2006 15:04 MST"),
+		itemsRows.String(),
+		task.Total,
+	)
+
+	if cfg.MockEmail {
+		// Log detailed receipt visualization to standard output
+		log.Printf("\n--- [MOCK EMAIL DISPATCH] ---\n"+
+			"To: %s\n"+
+			"Subject: %s\n"+
+			"From: %s\n"+
+			"HTML Body Preview:\n%s\n"+
+			"--------------------------------",
+			task.CustomerEmail, subject, cfg.SMTPFromEmail, htmlBody)
+		return true
+	}
+
+	// Build MIME message for HTML email
+	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
+	message := []byte(fmt.Sprintf("To: %s\nFrom: %s\nSubject: %s\n%s%s", 
+		task.CustomerEmail, cfg.SMTPFromEmail, subject, mime, htmlBody))
+
+	// Connect and send using SMTP
+	auth := smtp.PlainAuth("", cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPHost)
+	addr := fmt.Sprintf("%s:%d", cfg.SMTPHost, cfg.SMTPPort)
+
+	// Since Go's smtp.SendMail handles STARTTLS automatically when port 587 is used
+	err := smtp.SendMail(addr, auth, cfg.SMTPFromEmail, []string{task.CustomerEmail}, message)
+	if err != nil {
+		log.Printf("[Email Handler] Failed to send email using smtp.SendMail: %v", err)
+		return false
+	}
+
+	log.Printf("[Email Handler] Success: Invoice %s transmitted to email SMTP gateway.", task.InvoiceNumber)
+	return true
 }

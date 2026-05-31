@@ -27,10 +27,19 @@ router.post('/', async (req, res) => {
         email: customerEmail || undefined
       });
       await customer.save({ session });
-    } else if (customerName !== customer.name) {
-      customer.name = customerName;
-      if (customerEmail) customer.email = customerEmail;
-      await customer.save({ session });
+    } else {
+      let isChanged = false;
+      if (customerName !== customer.name) {
+        customer.name = customerName;
+        isChanged = true;
+      }
+      if (customerEmail && customerEmail !== customer.email) {
+        customer.email = customerEmail;
+        isChanged = true;
+      }
+      if (isChanged) {
+        await customer.save({ session });
+      }
     }
 
     // 2. Validate Items & Calculate Prices
@@ -76,7 +85,8 @@ router.post('/', async (req, res) => {
       discount: 0,
       total,
       paymentMethod,
-      whatsappStatus: 'Pending'
+      whatsappStatus: 'Pending',
+      emailStatus: customer.email ? 'Pending' : 'N/A'
     });
 
     await bill.save({ session });
@@ -95,6 +105,7 @@ router.post('/', async (req, res) => {
       invoiceNumber: bill.invoiceNumber,
       customerPhone: customer.phone,
       customerName: customer.name,
+      customerEmail: customer.email || '',
       total: bill.total,
       itemsSummary
     };
@@ -106,6 +117,9 @@ router.post('/', async (req, res) => {
 
     // Update Status to Queued
     bill.whatsappStatus = 'Queued';
+    if (customer.email) {
+      bill.emailStatus = 'Queued';
+    }
     await bill.save({ session });
 
     // Commit Transaction

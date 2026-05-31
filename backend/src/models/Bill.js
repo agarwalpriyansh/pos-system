@@ -69,6 +69,11 @@ const BillSchema = new mongoose.Schema({
     type: String,
     enum: ['Pending', 'Queued', 'Sent', 'Failed'],
     default: 'Pending'
+  },
+  emailStatus: {
+    type: String,
+    enum: ['Pending', 'Queued', 'Sent', 'Failed', 'N/A'],
+    default: 'Pending'
   }
 }, {
   timestamps: true
