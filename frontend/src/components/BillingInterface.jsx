@@ -45,14 +45,7 @@ export default function BillingInterface() {
       }
     } catch (err) {
       console.warn('Backend offline, using fallback catalog.');
-      setProducts([
-        { _id: '1', name: 'Organic Espresso Blend', sku: 'ESP-001', price: 12.99, category: 'Coffee', stock: 25, isActive: true },
-        { _id: '2', name: 'Cold Brew Concentrate', sku: 'CBC-002', price: 8.50, category: 'Beverages', stock: 15, isActive: true },
-        { _id: '3', name: 'Premium Ceramic Mug', sku: 'MUG-003', price: 15.00, category: 'Merchandise', stock: 8, isActive: true },
-        { _id: '4', name: 'Almond Croissant', sku: 'BAK-004', price: 4.25, category: 'Bakery', stock: 12, isActive: true },
-        { _id: '5', name: 'Matcha Green Tea Powder', sku: 'MTC-005', price: 18.99, category: 'Tea', stock: 20, isActive: true },
-        { _id: '6', name: 'Caramel Macchiato Syrup', sku: 'SYR-006', price: 6.99, category: 'Syrups', stock: 30, isActive: true }
-      ]);
+      setProducts([]);
     } finally {
       setProductsLoading(false);
     }
@@ -297,11 +290,11 @@ export default function BillingInterface() {
     }
   };
 
-  // Soft Delete (Deactivate) Product
+  // Delete Product Permanently
   const handleDeleteProduct = async () => {
     if (!editingProduct) return;
 
-    if (!window.confirm(`Are you sure you want to deactivate and remove "${editingProduct.name}" from active sales?`)) {
+    if (!window.confirm(`Are you sure you want to permanently delete "${editingProduct.name}" from the database?`)) {
       return;
     }
 
@@ -312,16 +305,16 @@ export default function BillingInterface() {
       });
 
       if (res.ok) {
-        triggerNotification('info', `Product "${editingProduct.name}" deactivated.`);
-        // Locally hide the deleted item or flag it
-        setProducts(products.map(p => p._id === editingProduct._id ? { ...p, isActive: false } : p));
+        triggerNotification('info', `Product "${editingProduct.name}" successfully deleted.`);
+        // Locally remove the deleted item
+        setProducts(products.filter(p => p._id !== editingProduct._id));
         
         // Remove from cart if it was selected
         setCart(cart.filter(item => item.productId !== editingProduct._id));
         clearAdminForm();
       } else {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to deactivate product');
+        throw new Error(data.error || 'Failed to delete product');
       }
     } catch (err) {
       triggerNotification('error', err.message);
@@ -628,7 +621,7 @@ export default function BillingInterface() {
                       disabled={loading}
                       className="w-full py-2 bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 font-bold text-xs md:text-sm uppercase tracking-widest rounded-xl border border-rose-500/20 hover:border-rose-500/40 transition duration-150 disabled:opacity-40"
                     >
-                      🗑️ Deactivate Product
+                      🗑️ Delete Product
                     </button>
                   )}
                 </div>

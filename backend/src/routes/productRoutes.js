@@ -56,16 +56,12 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Soft Delete a product (Deactivate it from POS sales screen)
+// Delete a product permanently from the database
 router.delete('/:id', async (req, res) => {
   try {
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false },
-      { new: true }
-    );
+    const product = await Product.findByIdAndDelete(req.params.id);
     if (!product) return res.status(404).json({ error: 'Product not found' });
-    res.json({ message: 'Product successfully deactivated', product });
+    res.json({ message: 'Product successfully deleted permanently', product });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

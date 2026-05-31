@@ -41,13 +41,7 @@ app.post('/api/seed', async (req, res) => {
       return res.json({ message: 'Products already exist, skipping seeding.' });
     }
 
-    const sampleProducts = [
-      { name: 'Organic Espresso Blend', sku: 'ESP-001', price: 12.99, category: 'Coffee Beans', stock: 50 },
-      { name: 'Cold Brew Concentrate', sku: 'CBC-002', price: 8.50, category: 'Beverages', stock: 30 },
-      { name: 'Premium Ceramic Mug', sku: 'MUG-003', price: 15.00, category: 'Merchandise', stock: 15 },
-      { name: 'Almond Croissant', sku: 'BAK-004', price: 4.25, category: 'Bakery', stock: 20 },
-      { name: 'Matcha Green Tea Powder', sku: 'MTC-005', price: 18.99, category: 'Tea', stock: 25 }
-    ];
+    const sampleProducts = [];
 
     await Product.insertMany(sampleProducts);
     res.status(201).json({ message: 'Sample product catalog seeded successfully!', count: sampleProducts.length });
