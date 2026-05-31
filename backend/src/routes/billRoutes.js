@@ -76,8 +76,28 @@ router.post('/', async (req, res) => {
     // Calculations
     const total = subtotal;
 
+    // Generate sequential invoice number: INV-DDMMYYYY-N
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const dateStr = `${day}${month}${year}`;
+
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    const countToday = await Bill.countDocuments({
+      createdAt: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    }).session(session);
+
+    const invoiceNumber = `INV-${dateStr}-${countToday + 1}`;
+
     // 3. Create Bill Document
     const bill = new Bill({
+      invoiceNumber,
       customer: customer._id,
       items: billItems,
       subtotal,

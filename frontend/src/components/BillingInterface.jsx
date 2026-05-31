@@ -767,16 +767,6 @@ export default function BillingInterface() {
                     👤 Customer Details
                   </h2>
                   <div className="flex flex-col gap-2.5">
-                    <div>
-                      <input
-                        type="text"
-                        required
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="Customer Name *"
-                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition"
-                      />
-                    </div>
                     <div className="relative flex items-center w-full">
                       <span className="absolute left-3 text-xs md:text-sm text-slate-400 font-mono select-none pointer-events-none">+91</span>
                       <input
@@ -789,6 +779,16 @@ export default function BillingInterface() {
                         }}
                         placeholder="WhatsApp Number (10 digits) *"
                         className="w-full pl-11 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition font-mono"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        required
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Customer Name *"
+                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs md:text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition"
                       />
                     </div>
                     <div>
