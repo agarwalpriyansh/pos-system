@@ -127,15 +127,12 @@ router.post('/', async (req, res) => {
       customerName: customer.name,
       customerEmail: customer.email || '',
       total: bill.total,
-      itemsSummary
+      itemsSummary,
+      paymentMethod: bill.paymentMethod,
+      createdAt: bill.createdAt
     };
 
-    // 5. Publish to Redis Queue (LPUSH)
-    const redis = getRedisClient();
-    const queueName = process.env.REDIS_QUEUE_NAME || 'queue:bills';
-    await redis.lpush(queueName, JSON.stringify(taskPayload));
-
-    // Update Status to Queued
+        // 5. Update Status to Queued
     bill.whatsappStatus = 'Queued';
     if (customer.email) {
       bill.emailStatus = 'Queued';
@@ -145,6 +142,11 @@ router.post('/', async (req, res) => {
     // Commit Transaction
     await session.commitTransaction();
     session.endSession();
+
+    // 6. Publish to Redis Queue (LPUSH) after successful transaction commit
+    const redis = getRedisClient();
+    const queueName = process.env.REDIS_QUEUE_NAME || 'queue:bills';
+    await redis.lpush(queueName, JSON.stringify(taskPayload));
 
     console.log(`[Queue Publisher] Successfully queued WhatsApp job for invoice ${bill.invoiceNumber}`);
 
@@ -168,6 +170,30 @@ router.get('/', async (req, res) => {
       .populate('customer', 'name phone')
       .sort({ createdAt: -1 });
     res.json(bills);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update delivery status of a bill
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const { whatsappStatus, emailStatus } = req.body;
+    const updateFields = {};
+    if (whatsappStatus) updateFields.whatsappStatus = whatsappStatus;
+    if (emailStatus) updateFields.emailStatus = emailStatus;
+
+    const bill = await Bill.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!bill) {
+      return res.status(404).json({ error: 'Bill not found' });
+    }
+
+    res.json({ message: 'Status updated successfully', bill });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

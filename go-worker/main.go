@@ -49,6 +49,8 @@ type QueueTask struct {
 	CustomerEmail string  `json:"customerEmail"`
 	Total         float64 `json:"total"`
 	ItemsSummary  string  `json:"itemsSummary"`
+	PaymentMethod string  `json:"paymentMethod"`
+	CreatedAt     string  `json:"createdAt"`
 }
 
 func loadConfig() Config {
@@ -245,29 +247,90 @@ func worker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Client, 
 			// Release distributed lock so the bill can be processed again if re-queued
 			rdb.Del(ctx, lockKey)
 			
-			// Optional: Notify backend service of completion to update DB
-			// In production, updating DB state ensures real-time statuses in MERN dashboard
+			// Notify backend service of completion to update DB
+			updateBillStatus(cfg, client, task.BillID, successWhatsApp, task.CustomerEmail != "", successEmail)
+			
 			log.Printf("[Worker Thread #%d] Completed processing for invoice %s. Success = %t", id, task.InvoiceNumber, success)
 		}
 	}
 }
 
+// Notify backend of final delivery status of WhatsApp and Email
+func updateBillStatus(cfg Config, client *http.Client, billID string, successWhatsApp bool, hasEmail bool, successEmail bool) {
+	statusPayload := map[string]string{}
+	
+	if successWhatsApp {
+		statusPayload["whatsappStatus"] = "Sent"
+	} else {
+		statusPayload["whatsappStatus"] = "Failed"
+	}
+
+	if hasEmail {
+		if successEmail {
+			statusPayload["emailStatus"] = "Sent"
+		} else {
+			statusPayload["emailStatus"] = "Failed"
+		}
+	}
+
+	payloadBytes, err := json.Marshal(statusPayload)
+	if err != nil {
+		log.Printf("[Status Updater] Failed to marshal status payload: %v", err)
+		return
+	}
+
+	url := fmt.Sprintf("%s/api/bills/%s/status", cfg.BackendURL, billID)
+	req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		log.Printf("[Status Updater] Failed to create PATCH request: %v", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("[Status Updater] Failed to execute PATCH request: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		log.Printf("[Status Updater] Backend rejected status update. Status: %d. Response: %s", resp.StatusCode, string(respBody))
+		return
+	}
+
+	log.Printf("[Status Updater] Successfully updated DB status for Bill ID %s in backend.", billID)
+}
+
 // Formats receipt layout & executes WhatsApp API
 func sendWhatsAppMessage(cfg Config, client *http.Client, task QueueTask) bool {
-	// 1. Format Beautiful UTF receipt summary
+	// 1. Format Beautiful UTF receipt summary matching the POS Receipt style
 	messageText := fmt.Sprintf(
-		"🧾 *INVOICE: %s*\n"+
-		"🏢 *DS Dryfruits Premium Dryfruits Store*\n"+
-		"----------------------------------------\n"+
-		"Dear *%s*,\n\n"+
-		"Thank you for shopping with us! Here is a summary of your bill:\n\n"+
-		"📦 *Items Purchased*:\n%s\n\n"+
-		"💵 *Total Amount Paid*: *₹%.2f*\n\n"+
-		"----------------------------------------\n"+
-		"If you have any queries, feel free to reply directly to this number.",
+		"🏢 *DS DRYFRUITS*\n"+
+		"*A PREMIUM DRYFRUITS STORE*\n"+
+		"Contact: ds.dryfruits@gmail.com\n"+
+		"------------------------------------------\n"+
+		"*Invoice Number:* %s\n"+
+		"*Date & Time:* %s\n"+
+		"*Payment Method:* %s\n"+
+		"*Customer Name:* %s\n"+
+		"*WhatsApp Number:* %s\n"+
+		"------------------------------------------\n"+
+		"*ITEMIZED BREAKDOWN*\n\n"+
+		"%s\n"+
+		"------------------------------------------\n"+
+		"*Subtotal Amount:* ₹%.2f\n"+
+		"*Grand Total:* *₹%.2f*\n"+
+		"------------------------------------------\n"+
+		"Thank you for shopping with us! Reply to this message if you have any questions.",
 		task.InvoiceNumber,
+		formatDate(task.CreatedAt),
+		task.PaymentMethod,
 		task.CustomerName,
-		formatItems(task.ItemsSummary),
+		task.CustomerPhone,
+		formatWhatsAppItems(task.ItemsSummary),
+		task.Total,
 		task.Total,
 	)
 
@@ -337,29 +400,42 @@ func sendWhatsAppMessage(cfg Config, client *http.Client, task QueueTask) bool {
 }
 
 // Clean list delimiters to beautiful bold bulletins for WhatsApp formatting
-func formatItems(summary string) string {
-	items := strings.Split(summary, ", ")
-	var formatted []string
-	for _, item := range items {
-		formatted = append(formatted, fmt.Sprintf("• %s", item))
+func formatWhatsAppItems(summary string) string {
+	if summary == "" {
+		return ""
 	}
-	return strings.Join(formatted, "\n")
+	items := strings.Split(summary, ", ")
+	var rows strings.Builder
+	for _, item := range items {
+		parts := strings.SplitN(item, " ", 2)
+		if len(parts) < 2 {
+			continue
+		}
+		qty := parts[0]
+		rest := parts[1]
+		
+		var name string
+		var price string
+		
+		idxOpen := strings.Index(rest, "(")
+		idxClose := strings.Index(rest, ")")
+		if idxOpen != -1 && idxClose != -1 && idxClose > idxOpen {
+			name = strings.TrimSpace(rest[:idxOpen])
+			price = rest[idxOpen+1 : idxClose]
+		} else {
+			name = rest
+			price = ""
+		}
+		
+		rows.WriteString(fmt.Sprintf("*%s*                                   *%s*\n%s @ %s\n\n", name, price, qty, price))
+	}
+	return strings.TrimSpace(rows.String())
 }
 
 // Formats HTML email receipt layout & executes SMTP transmission
 func sendEmailMessage(cfg Config, task QueueTask) bool {
 	subject := fmt.Sprintf("Invoice %s from DS Dryfruits Store", task.InvoiceNumber)
 	
-	// Format items into HTML table rows
-	var itemsRows strings.Builder
-	items := strings.Split(task.ItemsSummary, ", ")
-	for _, item := range items {
-		itemsRows.WriteString(fmt.Sprintf(`
-			<tr>
-				<td style="padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155;">%s</td>
-			</tr>`, item))
-	}
-
 	htmlBody := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
@@ -368,72 +444,79 @@ func sendEmailMessage(cfg Config, task QueueTask) bool {
     <title>DS Dryfruits Invoice</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; -webkit-font-smoothing: antialiased;">
-    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0;">
+    <div style="max-width: 440px; margin: 20px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; padding: 24px;">
+        
         <!-- Header -->
-        <div style="background: linear-gradient(135deg, #10b981 0%%, #14b8a6 100%%); padding: 32px 24px; text-align: center; color: #ffffff;">
-            <span style="font-size: 40px; margin-bottom: 8px; display: inline-block;">🧾</span>
-            <h1 style="margin: 0; font-size: 24px; font-weight: 800; tracking-tight: -0.025em;">DS Dryfruits</h1>
-            <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9; font-weight: 500;">Premium Dryfruits Store</p>
+        <div style="text-align: center; padding-bottom: 16px; border-bottom: 1px dashed #cbd5e1; margin-bottom: 16px;">
+            <h1 style="margin: 0; font-size: 20px; font-weight: 950; color: #1e293b; letter-spacing: 0.1em; text-transform: uppercase;">DS DRYFRUITS</h1>
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">A PREMIUM DRYFRUITS STORE</p>
+            <p style="margin: 2px 0 0 0; font-size: 10px; color: #94a3b8;">Contact: ds.dryfruits@gmail.com</p>
         </div>
         
-        <!-- Content -->
-        <div style="padding: 32px 24px;">
-            <h2 style="margin-top: 0; margin-bottom: 16px; font-size: 18px; font-weight: 700; color: #0f172a;">Invoice Summary</h2>
-            <p style="margin-top: 0; margin-bottom: 24px; font-size: 15px; color: #475569; line-height: 1.5;">
-                Dear <strong>%s</strong>,<br><br>
-                Thank you for shopping with DS Dryfruits! Your order has been successfully processed. Here is your purchase receipt:
-            </p>
-            
-            <!-- Metadata Grid -->
-            <div style="background-color: #f1f5f9; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
-                <table style="width: 100%%; border-collapse: collapse; font-size: 14px;">
-                    <tr>
-                        <td style="color: #64748b; padding-bottom: 8px; font-weight: 600;">Invoice Number:</td>
-                        <td style="color: #334155; text-align: right; padding-bottom: 8px; font-weight: 700;">%s</td>
-                    </tr>
-                    <tr>
-                        <td style="color: #64748b; font-weight: 600;">Date:</td>
-                        <td style="color: #334155; text-align: right; font-weight: 500;">%s</td>
-                    </tr>
-                </table>
-            </div>
-            
-            <!-- Items Table -->
-            <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">Items Purchased</h3>
-            <table style="width: 100%%; border-collapse: collapse; margin-bottom: 24px;">
-                <thead>
-                    <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                        <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Product Detail</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    %s
-                </tbody>
+        <!-- Metadata -->
+        <div style="padding-bottom: 16px; border-bottom: 1px dashed #cbd5e1; margin-bottom: 16px; font-size: 13px; line-height: 1.8; color: #475569;">
+            <table style="width: 100%%; border-collapse: collapse;">
+                <tr>
+                    <td style="color: #64748b; font-weight: 600;">Invoice Number:</td>
+                    <td style="text-align: right; font-weight: 800; color: #0f172a; font-family: monospace;">%s</td>
+                </tr>
+                <tr>
+                    <td style="color: #64748b; font-weight: 600;">Date & Time:</td>
+                    <td style="text-align: right; font-weight: 700; color: #0f172a;">%s</td>
+                </tr>
+                <tr>
+                    <td style="color: #64748b; font-weight: 600;">Payment Method:</td>
+                    <td style="text-align: right; font-weight: 700; color: #0f172a;">%s</td>
+                </tr>
+                <tr style="height: 8px;"><td></td><td></td></tr>
+                <tr>
+                    <td style="color: #64748b; font-weight: 600;">Customer Name:</td>
+                    <td style="text-align: right; font-weight: 700; color: #0f172a;">%s</td>
+                </tr>
+                <tr>
+                    <td style="color: #64748b; font-weight: 600;">WhatsApp Number:</td>
+                    <td style="text-align: right; font-weight: 700; color: #0f172a; font-family: monospace;">%s</td>
+                </tr>
             </table>
-            
-            <!-- Total -->
-            <div style="border-top: 2px dashed #e2e8f0; padding-top: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
-                <span style="font-size: 16px; font-weight: 700; color: #0f172a;">Total Paid:</span>
-                <span style="font-size: 24px; font-weight: 800; color: #10b981;">₹%.2f</span>
-            </div>
-            
-            <!-- Footer Callout -->
-            <div style="border-top: 1px solid #e2e8f0; padding-top: 24px; text-align: center;">
-                <p style="margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.5;">
-                    If you have any questions or concerns regarding this receipt, please do not hesitate to contact us by replying to this email.
-                </p>
-                <p style="margin: 8px 0 0 0; font-size: 13px; font-weight: 600; color: #10b981;">
-                    Thank you for your business!
-                </p>
-            </div>
+        </div>
+        
+        <!-- Itemized Breakdown -->
+        <div style="padding-bottom: 16px; border-bottom: 1px dashed #cbd5e1; margin-bottom: 16px;">
+            <h3 style="margin: 0 0 12px 0; font-size: 11px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">ITEMIZED BREAKDOWN</h3>
+            <table style="width: 100%%; border-collapse: collapse;">
+                %s
+            </table>
+        </div>
+        
+        <!-- Totals -->
+        <div style="font-size: 13px; line-height: 1.8; color: #475569;">
+            <table style="width: 100%%; border-collapse: collapse;">
+                <tr>
+                    <td style="color: #64748b; font-weight: 600;">Subtotal Amount:</td>
+                    <td style="text-align: right; font-weight: 700; color: #0f172a; font-family: monospace;">₹%.2f</td>
+                </tr>
+                <tr style="height: 8px;"><td></td><td></td></tr>
+                <tr style="border-top: 1px solid #f1f5f9; padding-top: 8px;">
+                    <td style="font-size: 15px; font-weight: 900; color: #0f172a; padding-top: 8px;">Grand Total:</td>
+                    <td style="text-align: right; font-size: 18px; font-weight: 900; color: #10b981; font-family: monospace; padding-top: 8px;">₹%.2f</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #f1f5f9;">
+            <p style="margin: 0; font-size: 11px; color: #94a3b8; font-weight: 600;">Thank you for shopping with DS Dryfruits!</p>
         </div>
     </div>
 </body>
 </html>`,
-		task.CustomerName,
 		task.InvoiceNumber,
-		time.Now().Format("Jan 02, 2006 15:04 MST"),
-		itemsRows.String(),
+		formatDate(task.CreatedAt),
+		task.PaymentMethod,
+		task.CustomerName,
+		task.CustomerPhone,
+		formatHTMLItems(task.ItemsSummary),
+		task.Total,
 		task.Total,
 	)
 
@@ -467,4 +550,61 @@ func sendEmailMessage(cfg Config, task QueueTask) bool {
 
 	log.Printf("[Email Handler] Success: Invoice %s transmitted to email SMTP gateway.", task.InvoiceNumber)
 	return true
+}
+
+// Clean list delimiters to beautiful bold bulletins for HTML layout
+func formatHTMLItems(summary string) string {
+	if summary == "" {
+		return ""
+	}
+	items := strings.Split(summary, ", ")
+	var rows strings.Builder
+	for _, item := range items {
+		parts := strings.SplitN(item, " ", 2)
+		if len(parts) < 2 {
+			continue
+		}
+		qty := parts[0]
+		rest := parts[1]
+		
+		var name string
+		var price string
+		
+		idxOpen := strings.Index(rest, "(")
+		idxClose := strings.Index(rest, ")")
+		if idxOpen != -1 && idxClose != -1 && idxClose > idxOpen {
+			name = strings.TrimSpace(rest[:idxOpen])
+			price = rest[idxOpen+1 : idxClose]
+		} else {
+			name = rest
+			price = ""
+		}
+		
+		rows.WriteString(fmt.Sprintf(`
+			<tr style="vertical-align: top;">
+				<td style="padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+					<span style="font-weight: 700; color: #1e293b; display: block; font-size: 13px;">%s</span>
+					<span style="font-size: 10px; color: #64748b; font-weight: 600; display: block; margin-top: 2px;">%s @ %s</span>
+				</td>
+				<td style="text-align: right; padding: 10px 0; font-weight: 800; color: #1e293b; font-family: monospace; font-size: 13px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; vertical-align: middle;">
+					%s
+				</td>
+			</tr>`, name, qty, price, price))
+	}
+	return rows.String()
+}
+
+// Formats UTC ISO-8601 string to beautiful IST format e.g. "01 Jun 2026, 12:27 am"
+func formatDate(isoStr string) string {
+	if isoStr == "" {
+		return time.Now().Format("02 Jan 2006, 03:04 pm")
+	}
+	t, err := time.Parse(time.RFC3339, isoStr)
+	if err != nil {
+		return time.Now().Format("02 Jan 2006, 03:04 pm")
+	}
+	// Shift to IST (UTC +5:30)
+	loc := time.FixedZone("IST", 5.5*60*60)
+	tIST := t.In(loc)
+	return tIST.Format("02 Jan 2006, 03:04 pm")
 }
