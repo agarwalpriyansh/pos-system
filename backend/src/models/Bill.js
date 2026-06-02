@@ -15,6 +15,10 @@ const BillItemSchema = new mongoose.Schema({
     required: true,
     min: [1, 'Quantity must be at least 1']
   },
+  weightChoice: {
+    type: String,
+    default: '1kg'
+  },
   price: {
     type: Number,
     required: true,

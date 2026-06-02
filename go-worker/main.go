@@ -417,8 +417,8 @@ func formatWhatsAppItems(summary string) string {
 		var name string
 		var price string
 		
-		idxOpen := strings.Index(rest, "(")
-		idxClose := strings.Index(rest, ")")
+		idxOpen := strings.LastIndex(rest, "(")
+		idxClose := strings.LastIndex(rest, ")")
 		if idxOpen != -1 && idxClose != -1 && idxClose > idxOpen {
 			name = strings.TrimSpace(rest[:idxOpen])
 			price = rest[idxOpen+1 : idxClose]
@@ -570,8 +570,8 @@ func formatHTMLItems(summary string) string {
 		var name string
 		var price string
 		
-		idxOpen := strings.Index(rest, "(")
-		idxClose := strings.Index(rest, ")")
+		idxOpen := strings.LastIndex(rest, "(")
+		idxClose := strings.LastIndex(rest, ")")
 		if idxOpen != -1 && idxClose != -1 && idxClose > idxOpen {
 			name = strings.TrimSpace(rest[:idxOpen])
 			price = rest[idxOpen+1 : idxClose]

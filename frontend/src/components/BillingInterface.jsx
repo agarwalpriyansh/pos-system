@@ -2,6 +2,20 @@ import React, { useState, useEffect, useMemo } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
+const getMultiplier = (weightChoice) => {
+  if (!weightChoice) return 1;
+  const clean = weightChoice.toLowerCase().trim();
+  if (clean.endsWith('kg')) {
+    return parseFloat(clean) || 1;
+  }
+  if (clean.endsWith('g') || clean.endsWith('gm') || clean.endsWith('gms')) {
+    const val = parseFloat(clean);
+    return val ? val / 1000 : 1;
+  }
+  const val = parseFloat(clean);
+  return val ? val / 1000 : 1;
+};
+
 export default function BillingInterface() {
   // Catalog & Core State
   const [products, setProducts] = useState([]);
@@ -9,6 +23,29 @@ export default function BillingInterface() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [selectedWeights, setSelectedWeights] = useState({}); // { [productId]: '1kg' | '500g' | '250g' }
+  const [enteringCustomFor, setEnteringCustomFor] = useState({}); // { [productId]: boolean }
+
+  const getProductWeight = (productId) => selectedWeights[productId] || '1kg';
+
+  const handleInlineCustomWeightSubmit = (product, inputVal) => {
+    const parsedVal = parseFloat(inputVal);
+    if (!parsedVal || parsedVal <= 0) {
+      triggerNotification('error', "Please enter a valid weight in grams.");
+      return;
+    }
+    
+    let formattedWeight;
+    if (parsedVal >= 1000) {
+      formattedWeight = `${parseFloat((parsedVal / 1000).toFixed(3))}kg`;
+    } else {
+      formattedWeight = `${parsedVal}g`;
+    }
+    
+    setSelectedWeights(prev => ({ ...prev, [product._id]: formattedWeight }));
+    setEnteringCustomFor(prev => ({ ...prev, [product._id]: false }));
+    triggerNotification('info', `Selected custom weight choice: ${formattedWeight}`);
+  };
 
   // Admin & View States
   const [currentView, setCurrentView] = useState('pos'); // 'pos', 'admin', 'dashboard'
@@ -165,56 +202,79 @@ export default function BillingInterface() {
   }, [customers]);
 
   // Add Item to Cart
-  const addToCart = (product) => {
-    const existing = cart.find(item => item.productId === product._id);
-    const currentQtyInCart = existing ? existing.quantity : 0;
+  const addToCart = (product, weightChoice = '1kg') => {
+    const multiplier = getMultiplier(weightChoice);
+    const priceForChoice = product.price * multiplier;
 
-    if (product.stock <= currentQtyInCart) {
-      triggerNotification('error', `Cannot exceed available stock of ${product.stock} units for ${product.name}`);
+    // Calculate total stock already used by this product across all choices in the cart
+    const stockUsed = cart
+      .filter(item => item.productId === product._id)
+      .reduce((sum, item) => {
+        const m = getMultiplier(item.weightChoice);
+        return sum + (item.quantity * m);
+      }, 0);
+
+    if (stockUsed + multiplier > product.stock) {
+      triggerNotification('error', `Cannot exceed available stock of ${product.stock} kg for ${product.name}`);
       return;
     }
 
+    const cartItemId = `${product._id}-${weightChoice}`;
+    const existing = cart.find(item => `${item.productId}-${item.weightChoice}` === cartItemId);
+
     if (existing) {
       setCart(cart.map(item =>
-        item.productId === product._id
-          ? { ...item, quantity: item.quantity + 1, total: (item.quantity + 1) * item.price }
+        `${item.productId}-${item.weightChoice}` === cartItemId
+          ? { ...item, quantity: item.quantity + 1, total: parseFloat(((item.quantity + 1) * item.price).toFixed(2)) }
           : item
       ));
     } else {
       setCart([...cart, {
         productId: product._id,
         name: product.name,
-        price: product.price,
+        price: priceForChoice,
+        weightChoice: weightChoice,
         quantity: 1,
-        total: product.price
+        total: priceForChoice
       }]);
     }
-    triggerNotification('success', `Added ${product.name} to invoice`);
+    triggerNotification('success', `Added ${product.name} (${weightChoice}) to invoice`);
   };
 
   // Update Cart Quantity
-  const updateQuantity = (productId, delta) => {
+  const updateQuantity = (productId, weightChoice, delta) => {
     const product = products.find(p => p._id === productId);
-    const existing = cart.find(item => item.productId === productId);
+    const cartItemId = `${productId}-${weightChoice}`;
+    const existing = cart.find(item => `${item.productId}-${item.weightChoice}` === cartItemId);
 
     if (!existing) return;
 
     const newQty = existing.quantity + delta;
 
     if (newQty <= 0) {
-      setCart(cart.filter(item => item.productId !== productId));
-      triggerNotification('info', `Removed ${existing.name} from invoice`);
+      setCart(cart.filter(item => `${item.productId}-${item.weightChoice}` !== cartItemId));
+      triggerNotification('info', `Removed ${existing.name} (${weightChoice}) from invoice`);
       return;
     }
 
-    if (delta > 0 && product && product.stock < newQty) {
-      triggerNotification('error', `Cannot exceed available stock of ${product.stock} units`);
-      return;
+    if (delta > 0 && product) {
+      const stockUsed = cart
+        .filter(item => item.productId === productId)
+        .reduce((sum, item) => {
+          const m = getMultiplier(item.weightChoice);
+          const qty = `${item.productId}-${item.weightChoice}` === cartItemId ? newQty : item.quantity;
+          return sum + (qty * m);
+        }, 0);
+
+      if (stockUsed > product.stock) {
+        triggerNotification('error', `Cannot exceed available stock of ${product.stock} kg`);
+        return;
+      }
     }
 
     setCart(cart.map(item =>
-      item.productId === productId
-        ? { ...item, quantity: newQty, total: newQty * item.price }
+      `${item.productId}-${item.weightChoice}` === cartItemId
+        ? { ...item, quantity: newQty, total: parseFloat((newQty * item.price).toFixed(2)) }
         : item
     ));
   };
@@ -250,7 +310,8 @@ export default function BillingInterface() {
         customerEmail: customerEmail || undefined,
         items: cart.map(item => ({
           productId: item.productId,
-          quantity: item.quantity
+          quantity: item.quantity,
+          weightChoice: item.weightChoice
         })),
         tax: 0,
         discount: 0,
@@ -271,8 +332,18 @@ export default function BillingInterface() {
         // Update product inventory locally
         setProducts(prevProducts =>
           prevProducts.map(p => {
-            const cartItem = cart.find(item => item.productId === p._id);
-            return cartItem ? { ...p, stock: p.stock - cartItem.quantity } : p;
+            const productCartItems = cart.filter(item => item.productId === p._id);
+            if (productCartItems.length === 0) return p;
+
+            const totalDeductedStock = productCartItems.reduce((sum, item) => {
+              const m = getMultiplier(item.weightChoice);
+              return sum + (item.quantity * m);
+            }, 0);
+
+            return {
+              ...p,
+              stock: parseFloat((p.stock - totalDeductedStock).toFixed(2))
+            };
           })
         );
 
@@ -547,9 +618,20 @@ export default function BillingInterface() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredProducts.map(product => {
-                const cartQty = cart.find(i => i.productId === product._id)?.quantity || 0;
-                const isOutOfStock = product.stock <= 0;
+                const selectedWeight = getProductWeight(product._id);
+                const cartQty = cart.find(i => i.productId === product._id && i.weightChoice === selectedWeight)?.quantity || 0;
+                
+                // Calculate remaining available stock dynamically (subtract stock already in cart)
+                const stockUsedInCart = cart
+                  .filter(item => item.productId === product._id)
+                  .reduce((sum, item) => sum + (item.quantity * getMultiplier(item.weightChoice)), 0);
+                const remainingStock = parseFloat((product.stock - stockUsedInCart).toFixed(2));
+                
+                const isOutOfStock = remainingStock <= 0;
                 const isBeingEdited = editingProduct && editingProduct._id === product._id;
+
+                const multiplier = getMultiplier(selectedWeight);
+                const displayedPrice = product.price * multiplier;
 
                 return (
                   <div
@@ -558,7 +640,7 @@ export default function BillingInterface() {
                       if (adminMode) {
                         selectProductForEditing(product);
                       } else if (!isOutOfStock) {
-                        addToCart(product);
+                        addToCart(product, selectedWeight);
                       }
                     }}
                     className={`group relative flex flex-col justify-between p-3.5 rounded-2xl border transition duration-200 cursor-pointer select-none bg-slate-900/40 hover:bg-slate-900/80 active:scale-98 ${
@@ -576,9 +658,9 @@ export default function BillingInterface() {
                     {/* Floating Stock Tag */}
                     <span className={`absolute top-2.5 right-2.5 px-2 py-0.5 md:px-2.5 md:py-1 text-[10px] md:text-xs font-bold rounded-full uppercase tracking-wider ${
                       isOutOfStock ? 'bg-rose-950/60 text-rose-400' :
-                      product.stock <= 5 ? 'bg-amber-950/60 text-amber-400' : 'bg-slate-950/60 text-slate-400'
+                      remainingStock <= 5 ? 'bg-amber-950/60 text-amber-400' : 'bg-slate-950/60 text-slate-400'
                     }`}>
-                      {isOutOfStock ? 'Sold Out' : `Qty: ${product.stock}`}
+                      {isOutOfStock ? 'Sold Out' : `Stock: ${remainingStock} kg`}
                     </span>
 
                     <div className="mb-4 pr-10 md:pr-12">
@@ -589,11 +671,82 @@ export default function BillingInterface() {
                         {product.name}
                       </h3>
                       <p className="text-slate-500 text-[10px] md:text-xs mt-1 md:mt-1.5">{product.category}</p>
+
+                      {/* Weight Selector Segment */}
+                      {!adminMode && (
+                        enteringCustomFor[product._id] ? (
+                          <div className="flex bg-slate-950/60 p-1 rounded-lg border border-emerald-500/30 mt-2.5 gap-1.5 w-full items-center" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="number"
+                              autoFocus
+                              placeholder="Grams..."
+                              className="w-full bg-slate-900 border border-slate-800 rounded-md px-2 py-0.5 text-[10px] text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleInlineCustomWeightSubmit(product, e.target.value);
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                const inputVal = e.currentTarget.previousSibling.value;
+                                handleInlineCustomWeightSubmit(product, inputVal);
+                              }}
+                              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black px-2 py-0.5 rounded text-[10px] active:scale-95 transition"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEnteringCustomFor(prev => ({ ...prev, [product._id]: false }))}
+                              className="bg-slate-900 hover:bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px] border border-slate-800"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex bg-slate-950/60 p-0.5 rounded-lg border border-slate-800/80 mt-2.5 gap-0.5" onClick={(e) => e.stopPropagation()}>
+                            {['1kg', '500g', '250g'].map((wt) => (
+                              <button
+                                key={wt}
+                                type="button"
+                                onClick={() => setSelectedWeights(prev => ({ ...prev, [product._id]: wt }))}
+                                className={`flex-1 text-[9px] md:text-[10px] font-bold py-1 rounded transition duration-150 ${
+                                  selectedWeight === wt
+                                    ? 'bg-emerald-500 text-slate-950 font-black'
+                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
+                                }`}
+                              >
+                                {wt}
+                              </button>
+                            ))}
+                            
+                            {/* If a custom weight (not in standard choices) is active, show its badge */}
+                            {!['1kg', '500g', '250g'].includes(selectedWeight) && (
+                              <button
+                                type="button"
+                                className="flex-1 text-[9px] md:text-[10px] font-bold py-1 rounded bg-emerald-500 text-slate-950 font-black transition duration-150"
+                              >
+                                {selectedWeight}
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => setEnteringCustomFor(prev => ({ ...prev, [product._id]: true }))}
+                              className="flex-1 text-[9px] md:text-[10px] font-bold py-1 rounded transition duration-150 text-slate-400 hover:text-slate-200 hover:bg-slate-900/40"
+                            >
+                              ✏️ Custom
+                            </button>
+                          </div>
+                        )
+                      )}
                     </div>
 
                     <div className="flex justify-between items-center mt-auto">
                       <span className={`${adminMode ? 'text-indigo-400' : 'text-emerald-400'} font-black text-sm md:text-lg lg:text-xl`}>
-                        ₹{product.price.toFixed(2)}
+                        ₹{displayedPrice.toFixed(2)}
                       </span>
                       
                       {adminMode ? (
@@ -677,7 +830,7 @@ export default function BillingInterface() {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-xs font-bold text-slate-400 block mb-1">Price (₹) *</label>
+                      <label className="text-xs font-bold text-slate-400 block mb-1">Price per 1kg (₹) *</label>
                       <input
                         type="number"
                         step="0.01"
@@ -690,7 +843,7 @@ export default function BillingInterface() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-400 block mb-1">Stock Level *</label>
+                      <label className="text-xs font-bold text-slate-400 block mb-1">Stock in kg *</label>
                       <input
                         type="number"
                         min="0"
@@ -821,16 +974,21 @@ export default function BillingInterface() {
                   ) : (
                     <div className="flex-1 overflow-y-auto max-h-[240px] pr-1 space-y-2 scrollbar-thin scrollbar-thumb-slate-800">
                       {cart.map(item => (
-                        <div key={item.productId} className="flex justify-between items-center bg-slate-950/80 border border-slate-800/80 p-2.5 md:p-3 rounded-xl">
+                        <div key={`${item.productId}-${item.weightChoice}`} className="flex justify-between items-center bg-slate-950/80 border border-slate-800/80 p-2.5 md:p-3 rounded-xl">
                            <div className="flex-1 pr-2">
-                            <p className="text-xs md:text-sm font-bold text-slate-200 line-clamp-1">{item.name}</p>
+                            <p className="text-xs md:text-sm font-bold text-slate-200 line-clamp-1">
+                              {item.name}
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 font-bold ml-1.5 uppercase font-mono">
+                                {item.weightChoice}
+                              </span>
+                            </p>
                             <p className="text-[10px] md:text-xs text-slate-400 mt-0.5 font-semibold">₹{item.price.toFixed(2)} each</p>
                           </div>
                           
                           <div className="flex items-center gap-1.5 md:gap-2.5">
                             <button
                               type="button"
-                              onClick={() => updateQuantity(item.productId, -1)}
+                              onClick={() => updateQuantity(item.productId, item.weightChoice, -1)}
                               className="h-6 w-6 md:h-8 md:w-8 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-xs md:text-sm active:scale-90 transition font-bold"
                             >
                               -
@@ -838,7 +996,7 @@ export default function BillingInterface() {
                             <span className="text-xs md:text-sm font-mono font-bold w-4 md:w-5 text-center">{item.quantity}</span>
                             <button
                               type="button"
-                              onClick={() => updateQuantity(item.productId, 1)}
+                              onClick={() => updateQuantity(item.productId, item.weightChoice, 1)}
                               className="h-6 w-6 md:h-8 md:w-8 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-xs md:text-sm active:scale-90 transition font-bold"
                             >
                               +
@@ -1249,7 +1407,14 @@ export default function BillingInterface() {
                 {selectedInvoice.items?.map((item, idx) => (
                   <div key={item._id || idx} className="flex justify-between items-start text-xs">
                     <div className="flex-1 pr-4">
-                      <span className="font-bold text-slate-800 block leading-tight">{item.name}</span>
+                      <span className="font-bold text-slate-800 block leading-tight">
+                        {item.name}
+                        {item.weightChoice && (
+                          <span className="text-[9px] px-1 py-0.2 bg-slate-100 border border-slate-200 text-slate-500 rounded font-bold ml-1 font-mono uppercase">
+                            {item.weightChoice}
+                          </span>
+                        )}
+                      </span>
                       <span className="text-[10px] text-slate-500 font-semibold">{item.quantity}x @ ₹{item.price.toFixed(2)}</span>
                     </div>
                     <span className="font-mono font-bold text-slate-800">₹{item.total.toFixed(2)}</span>

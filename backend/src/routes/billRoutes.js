@@ -6,6 +6,20 @@ const Customer = require('../models/Customer');
 const Product = require('../models/Product');
 const { getRedisClient } = require('../config/redis');
 
+const getMultiplier = (weightChoice) => {
+  if (!weightChoice) return 1;
+  const clean = weightChoice.toLowerCase().trim();
+  if (clean.endsWith('kg')) {
+    return parseFloat(clean) || 1;
+  }
+  if (clean.endsWith('g') || clean.endsWith('gm') || clean.endsWith('gms')) {
+    const val = parseFloat(clean);
+    return val ? val / 1000 : 1;
+  }
+  const val = parseFloat(clean);
+  return val ? val / 1000 : 1;
+};
+
 // Create a new bill and push task to Redis queue
 router.post('/', async (req, res) => {
   const session = await mongoose.startSession();
@@ -52,23 +66,31 @@ router.post('/', async (req, res) => {
         throw new Error(`Product not found: ${item.productId}`);
       }
 
+      // Calculate weight multiplier
+      const weightChoice = item.weightChoice || '1kg';
+      const multiplier = getMultiplier(weightChoice);
+
+      const itemPrice = product.price * multiplier;
+      const itemTotal = itemPrice * item.quantity;
+      const stockDeduction = multiplier * item.quantity;
+
       // Check stock
-      if (product.stock < item.quantity) {
-        throw new Error(`Insufficient stock for product ${product.name}. Available: ${product.stock}`);
+      if (product.stock < stockDeduction) {
+        throw new Error(`Insufficient stock for product ${product.name}. Available: ${product.stock} kg`);
       }
 
-      // Deduct stock
-      product.stock -= item.quantity;
+      // Deduct stock (rounding to 2 decimal places to avoid floating point issues)
+      product.stock = parseFloat((product.stock - stockDeduction).toFixed(2));
       await product.save({ session });
 
-      const itemTotal = product.price * item.quantity;
       subtotal += itemTotal;
 
       billItems.push({
         product: product._id,
         name: product.name,
         quantity: item.quantity,
-        price: product.price,
+        weightChoice: weightChoice,
+        price: itemPrice,
         total: itemTotal
       });
     }
@@ -117,7 +139,7 @@ router.post('/', async (req, res) => {
 
     // 4. Queue Payload Preparation
     const itemsSummary = billItems
-      .map((item) => `${item.quantity}x ${item.name} (₹${item.price.toFixed(2)})`)
+      .map((item) => `${item.quantity}x ${item.name} (${item.weightChoice}) (₹${item.price.toFixed(2)})`)
       .join(', ');
 
     const taskPayload = {
