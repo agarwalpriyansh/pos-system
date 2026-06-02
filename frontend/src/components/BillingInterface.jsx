@@ -327,7 +327,10 @@ export default function BillingInterface() {
       const data = await res.json();
 
       if (res.ok) {
-        triggerNotification('success', `Invoice ${data.bill.invoiceNumber} generated! WhatsApp job queued.`);
+        const msg = customerEmail
+          ? `Invoice ${data.bill.invoiceNumber} generated! WhatsApp & Email jobs queued.`
+          : `Invoice ${data.bill.invoiceNumber} generated! WhatsApp job queued.`;
+        triggerNotification('success', msg);
         
         // Update product inventory locally
         setProducts(prevProducts =>
