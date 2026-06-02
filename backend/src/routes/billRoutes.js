@@ -4,7 +4,9 @@ const mongoose = require('mongoose');
 const Bill = require('../models/Bill');
 const Customer = require('../models/Customer');
 const Product = require('../models/Product');
+const Shop = require('../models/Shop');
 const { getRedisClient } = require('../config/redis');
+const authMiddleware = require('../middlewares/auth');
 
 const getMultiplier = (weightChoice) => {
   if (!weightChoice) return 1;
@@ -21,21 +23,28 @@ const getMultiplier = (weightChoice) => {
 };
 
 // Create a new bill and push task to Redis queue
-router.post('/', async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { customerPhone, customerName, customerEmail, items, tax, discount, paymentMethod } = req.body;
+    const { customerPhone, customerName, customerEmail, items, paymentMethod } = req.body;
 
     if (!customerPhone || !customerName || !items || items.length === 0) {
       return res.status(400).json({ error: 'Customer phone, name, and items are required' });
     }
 
+    // Fetch Shop metadata
+    const shop = await Shop.findOne({ shopId: req.shopId }).session(session);
+    if (!shop) {
+      throw new Error(`Shop profile not found for tenant: ${req.shopId}`);
+    }
+
     // 1. Create or Update Customer
-    let customer = await Customer.findOne({ phone: customerPhone }).session(session);
+    let customer = await Customer.findOne({ shopId: req.shopId, phone: customerPhone }).session(session);
     if (!customer) {
       customer = new Customer({
+        shopId: req.shopId,
         phone: customerPhone,
         name: customerName,
         email: customerEmail || undefined
@@ -61,9 +70,9 @@ router.post('/', async (req, res) => {
     const billItems = [];
 
     for (const item of items) {
-      const product = await Product.findById(item.productId).session(session);
+      const product = await Product.findOne({ _id: item.productId, shopId: req.shopId }).session(session);
       if (!product) {
-        throw new Error(`Product not found: ${item.productId}`);
+        throw new Error(`Product not found in your catalog: ${item.productId}`);
       }
 
       // Calculate weight multiplier
@@ -98,7 +107,7 @@ router.post('/', async (req, res) => {
     // Calculations
     const total = subtotal;
 
-    // Generate sequential invoice number: INV-DDMMYYYY-N
+    // Generate sequential invoice number: INV-DDMMYYYY-N (scoped per shop)
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -109,6 +118,7 @@ router.post('/', async (req, res) => {
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
     const countToday = await Bill.countDocuments({
+      shopId: req.shopId,
       createdAt: {
         $gte: startOfDay,
         $lte: endOfDay
@@ -119,6 +129,7 @@ router.post('/', async (req, res) => {
 
     // 3. Create Bill Document
     const bill = new Bill({
+      shopId: req.shopId,
       invoiceNumber,
       customer: customer._id,
       items: billItems,
@@ -137,7 +148,7 @@ router.post('/', async (req, res) => {
     customer.totalSpent += total;
     await customer.save({ session });
 
-    // 4. Queue Payload Preparation
+    // 4. Queue Payload Preparation (with shop metadata for dynamic branding)
     const itemsSummary = billItems
       .map((item) => `${item.quantity}x ${item.name} (${item.weightChoice}) (₹${item.price.toFixed(2)})`)
       .join(', ');
@@ -151,10 +162,14 @@ router.post('/', async (req, res) => {
       total: bill.total,
       itemsSummary,
       paymentMethod: bill.paymentMethod,
-      createdAt: bill.createdAt
+      createdAt: bill.createdAt,
+      // Inject shop details for dynamic sender info in worker
+      shopName: shop.name,
+      shopDescription: shop.description || 'Premium POS SaaS Merchant',
+      shopContact: shop.contact || ''
     };
 
-        // 5. Update Status to Queued
+    // 5. Update Status to Queued
     bill.whatsappStatus = 'Queued';
     if (customer.email) {
       bill.emailStatus = 'Queued';
@@ -170,10 +185,10 @@ router.post('/', async (req, res) => {
     const queueName = process.env.REDIS_QUEUE_NAME || 'queue:bills';
     await redis.lpush(queueName, JSON.stringify(taskPayload));
 
-    console.log(`[Queue Publisher] Successfully queued WhatsApp job for invoice ${bill.invoiceNumber}`);
+    console.log(`[Queue Publisher] Successfully queued WhatsApp/Email job for invoice ${bill.invoiceNumber} (Shop: ${shop.name})`);
 
     res.status(201).json({
-      message: 'Bill created successfully and queued for WhatsApp broadcast',
+      message: 'Bill created successfully and queued for receipt broadcast',
       bill
     });
 
@@ -185,11 +200,11 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get all bills
-router.get('/', async (req, res) => {
+// Get all bills for the tenant
+router.get('/', authMiddleware, async (req, res) => {
   try {
-    const bills = await Bill.find()
-      .populate('customer', 'name phone')
+    const bills = await Bill.find({ shopId: req.shopId })
+      .populate('customer', 'name phone email')
       .sort({ createdAt: -1 });
     res.json(bills);
   } catch (error) {
@@ -197,7 +212,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Update delivery status of a bill
+// Update delivery status of a bill (Open endpoint called by background worker)
 router.patch('/:id/status', async (req, res) => {
   try {
     const { whatsappStatus, emailStatus } = req.body;
@@ -205,6 +220,7 @@ router.patch('/:id/status', async (req, res) => {
     if (whatsappStatus) updateFields.whatsappStatus = whatsappStatus;
     if (emailStatus) updateFields.emailStatus = emailStatus;
 
+    // Direct findByIdAndUpdate since Bill ID is a globally unique Mongo ObjectId
     const bill = await Bill.findByIdAndUpdate(
       req.params.id,
       { $set: updateFields },

@@ -16,10 +16,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const authMiddleware = require('./middlewares/auth');
+
 // Routes
-app.use('/api/products', require('./routes/productRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/products', authMiddleware, require('./routes/productRoutes'));
 app.use('/api/bills', require('./routes/billRoutes'));
-app.use('/api/customers', require('./routes/customerRoutes'));
+app.use('/api/customers', authMiddleware, require('./routes/customerRoutes'));
+app.use('/api/analytics', authMiddleware, require('./routes/analyticsRoutes'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
