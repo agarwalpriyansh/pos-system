@@ -182,15 +182,18 @@ export default function DashboardView({
                         console.warn("showPicker is not supported or failed:", err);
                       }
                     }}
-                    className="relative flex items-center bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 focus-within:border-cyan-500 transition cursor-pointer"
+                    className="relative flex items-center bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 focus-within:border-cyan-500 transition cursor-pointer flex-shrink-0 gap-2"
                   >
-                    <span className="text-[10px] text-slate-500 font-black uppercase mr-2 select-none">📅 Date:</span>
+                    <span className="text-[10px] text-slate-500 font-black uppercase select-none whitespace-nowrap flex-shrink-0 flex items-center gap-1">
+                      <span>📅</span>
+                      <span>Date:</span>
+                    </span>
                     <input
                       ref={dateInputRef}
                       type="date"
                       value={filterDate}
                       onChange={(e) => setFilterDate(e.target.value)}
-                      className="bg-transparent text-xs text-slate-205 focus:outline-none font-bold font-mono cursor-pointer scheme-dark"
+                      className="bg-transparent text-xs text-slate-200 focus:outline-none font-bold font-mono cursor-pointer scheme-dark min-w-[115px] select-none"
                     />
                   </div>
                 )}
