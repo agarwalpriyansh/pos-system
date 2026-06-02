@@ -114,6 +114,10 @@ router.post('/login', async (req, res) => {
     // Fetch Shop info
     const shop = await Shop.findOne({ shopId: user.shopId });
 
+    if (user.role !== 'SuperAdmin' && shop && shop.isActive === false) {
+      return res.status(403).json({ error: 'Your shop account has been suspended. Please contact platform support.' });
+    }
+
     const token = generateToken(user);
 
     res.json({
@@ -185,6 +189,10 @@ router.post('/google-oauth', async (req, res) => {
     } else {
       // If user exists, fetch shop info
       shop = await Shop.findOne({ shopId: user.shopId });
+      
+      if (user.role !== 'SuperAdmin' && shop && shop.isActive === false) {
+        return res.status(403).json({ error: 'Your shop account has been suspended. Please contact platform support.' });
+      }
       
       // Update googleId if missing
       if (!user.googleId) {

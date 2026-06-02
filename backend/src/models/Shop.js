@@ -20,6 +20,10 @@ const ShopSchema = new mongoose.Schema({
   contact: {
     type: String,
     default: ''
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true
