@@ -42,15 +42,18 @@ type Config struct {
 
 // QueueTask represents the structural schema pushed by Node.js
 type QueueTask struct {
-	BillID        string  `json:"billId"`
-	InvoiceNumber string  `json:"invoiceNumber"`
-	CustomerPhone string  `json:"customerPhone"`
-	CustomerName  string  `json:"customerName"`
-	CustomerEmail string  `json:"customerEmail"`
-	Total         float64 `json:"total"`
-	ItemsSummary  string  `json:"itemsSummary"`
-	PaymentMethod string  `json:"paymentMethod"`
-	CreatedAt     string  `json:"createdAt"`
+	BillID          string  `json:"billId"`
+	InvoiceNumber   string  `json:"invoiceNumber"`
+	CustomerPhone   string  `json:"customerPhone"`
+	CustomerName    string  `json:"customerName"`
+	CustomerEmail   string  `json:"customerEmail"`
+	Total           float64 `json:"total"`
+	ItemsSummary    string  `json:"itemsSummary"`
+	PaymentMethod   string  `json:"paymentMethod"`
+	CreatedAt       string  `json:"createdAt"`
+	ShopName        string  `json:"shopName"`
+	ShopDescription string  `json:"shopDescription"`
+	ShopContact     string  `json:"shopContact"`
 }
 
 func loadConfig() Config {
@@ -305,11 +308,25 @@ func updateBillStatus(cfg Config, client *http.Client, billID string, successWha
 
 // Formats receipt layout & executes WhatsApp API
 func sendWhatsAppMessage(cfg Config, client *http.Client, task QueueTask) bool {
+	// Fallback to defaults if shop metadata is missing
+	shopName := task.ShopName
+	if shopName == "" {
+		shopName = "DS DRYFRUITS"
+	}
+	shopDesc := task.ShopDescription
+	if shopDesc == "" {
+		shopDesc = "A PREMIUM DRYFRUITS STORE"
+	}
+	shopContact := task.ShopContact
+	if shopContact == "" {
+		shopContact = "ds.dryfruits@gmail.com"
+	}
+
 	// 1. Format Beautiful UTF receipt summary matching the POS Receipt style
 	messageText := fmt.Sprintf(
-		"🏢 *DS DRYFRUITS*\n"+
-		"*A PREMIUM DRYFRUITS STORE*\n"+
-		"Contact: ds.dryfruits@gmail.com\n"+
+		"🏢 *%s*\n"+
+		"*%s*\n"+
+		"Contact: %s\n"+
 		"------------------------------------------\n"+
 		"*Invoice Number:* %s\n"+
 		"*Date & Time:* %s\n"+
@@ -323,7 +340,10 @@ func sendWhatsAppMessage(cfg Config, client *http.Client, task QueueTask) bool {
 		"*Subtotal Amount:* ₹%.2f\n"+
 		"*Grand Total:* *₹%.2f*\n"+
 		"------------------------------------------\n"+
-		"Thank you for shopping with us! Reply to this message if you have any questions.",
+		"Thank you for shopping with %s! Reply to this message if you have any questions.",
+		strings.ToUpper(shopName),
+		strings.ToUpper(shopDesc),
+		shopContact,
 		task.InvoiceNumber,
 		formatDate(task.CreatedAt),
 		task.PaymentMethod,
@@ -332,6 +352,7 @@ func sendWhatsAppMessage(cfg Config, client *http.Client, task QueueTask) bool {
 		formatWhatsAppItems(task.ItemsSummary),
 		task.Total,
 		task.Total,
+		shopName,
 	)
 
 	// 2. Prepare HTTP Payload matching WhatsApp Cloud API Specification
@@ -448,23 +469,38 @@ func formatWhatsAppItems(summary string) string {
 
 // Formats HTML email receipt layout & executes SMTP transmission
 func sendEmailMessage(cfg Config, task QueueTask) bool {
-	subject := fmt.Sprintf("Invoice %s from DS Dryfruits Store", task.InvoiceNumber)
+	// Fallback to defaults if shop metadata is missing
+	shopName := task.ShopName
+	if shopName == "" {
+		shopName = "DS DRYFRUITS"
+	}
+	shopDesc := task.ShopDescription
+	if shopDesc == "" {
+		shopDesc = "A PREMIUM DRYFRUITS STORE"
+	}
+	shopContact := task.ShopContact
+	if shopContact == "" {
+		shopContact = "ds.dryfruits@gmail.com"
+	}
+
+	subject := fmt.Sprintf("Invoice %s from %s", task.InvoiceNumber, shopName)
+	fromHeader := fmt.Sprintf("\"%s\" <%s>", shopName, cfg.SMTPFromEmail)
 	
 	htmlBody := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DS Dryfruits Invoice</title>
+    <title>%s Invoice</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; -webkit-font-smoothing: antialiased;">
     <div style="max-width: 550px; margin: 20px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; padding: 24px;">
         
         <!-- Header -->
         <div style="text-align: center; padding-bottom: 16px; border-bottom: 1px dashed #cbd5e1; margin-bottom: 16px;">
-            <h1 style="margin: 0; font-size: 20px; font-weight: 950; color: #1e293b; letter-spacing: 0.1em; text-transform: uppercase;">DS DRYFRUITS</h1>
-            <p style="margin: 4px 0 0 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">A PREMIUM DRYFRUITS STORE</p>
-            <p style="margin: 2px 0 0 0; font-size: 10px; color: #94a3b8;">Contact: ds.dryfruits@gmail.com</p>
+            <h1 style="margin: 0; font-size: 20px; font-weight: 950; color: #1e293b; letter-spacing: 0.1em; text-transform: uppercase;">%s</h1>
+            <p style="margin: 4px 0 0 0; font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">%s</p>
+            <p style="margin: 2px 0 0 0; font-size: 10px; color: #94a3b8;">Contact: %s</p>
         </div>
         
         <!-- Metadata -->
@@ -519,11 +555,15 @@ func sendEmailMessage(cfg Config, task QueueTask) bool {
 
         <!-- Footer -->
         <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #f1f5f9;">
-            <p style="margin: 0; font-size: 11px; color: #94a3b8; font-weight: 600;">Thank you for shopping with DS Dryfruits!</p>
+            <p style="margin: 0; font-size: 11px; color: #94a3b8; font-weight: 600;">Thank you for shopping with %s!</p>
         </div>
     </div>
 </body>
 </html>`,
+		shopName,
+		strings.ToUpper(shopName),
+		strings.ToUpper(shopDesc),
+		shopContact,
 		task.InvoiceNumber,
 		formatDate(task.CreatedAt),
 		task.PaymentMethod,
@@ -532,6 +572,7 @@ func sendEmailMessage(cfg Config, task QueueTask) bool {
 		formatHTMLItems(task.ItemsSummary),
 		task.Total,
 		task.Total,
+		shopName,
 	)
 
 	if cfg.MockEmail {
@@ -542,14 +583,14 @@ func sendEmailMessage(cfg Config, task QueueTask) bool {
 			"From: %s\n"+
 			"HTML Body Preview:\n%s\n"+
 			"--------------------------------",
-			task.CustomerEmail, subject, cfg.SMTPFromEmail, htmlBody)
+			task.CustomerEmail, subject, fromHeader, htmlBody)
 		return true
 	}
 
 	// Build MIME message for HTML email
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 	message := []byte(fmt.Sprintf("To: %s\nFrom: %s\nSubject: %s\n%s%s", 
-		task.CustomerEmail, cfg.SMTPFromEmail, subject, mime, htmlBody))
+		task.CustomerEmail, fromHeader, subject, mime, htmlBody))
 
 	// Connect and send using SMTP
 	auth := smtp.PlainAuth("", cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPHost)
