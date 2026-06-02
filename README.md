@@ -106,15 +106,4 @@ Mount the responsive component [**`BillingInterface.jsx`**](file:///c:/Users/Del
 
 ---
 
-## ⚡ Git Automation Commands
 
-To commit files with automated descriptive labels indicating which sub-components changed:
-```bash
-node git-commit-helper.js
-```
-
-To commit files with a custom message while still auto-tagging the components:
-```bash
-node git-commit-helper.js "Fully integrated Mongoose transactions"
-```
-*This works natively on Windows, macOS, and Linux without shell dependencies.*
