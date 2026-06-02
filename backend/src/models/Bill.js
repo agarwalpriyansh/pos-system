@@ -31,10 +31,14 @@ const BillItemSchema = new mongoose.Schema({
 });
 
 const BillSchema = new mongoose.Schema({
+  shopId: {
+    type: String,
+    required: [true, 'Shop ID is required'],
+    index: true
+  },
   invoiceNumber: {
     type: String,
     required: true,
-    unique: true,
     default: () => `INV-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`
   },
   customer: {
@@ -72,5 +76,8 @@ const BillSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Compound index to ensure unique invoiceNumber per shop
+BillSchema.index({ shopId: 1, invoiceNumber: 1 }, { unique: true });
 
 module.exports = mongoose.model('Bill', BillSchema);

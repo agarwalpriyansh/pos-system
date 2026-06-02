@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const ProductSchema = new mongoose.Schema({
+  shopId: {
+    type: String,
+    required: [true, 'Shop ID is required'],
+    index: true
+  },
   name: {
     type: String,
     required: [true, 'Product name is required'],
@@ -9,7 +14,6 @@ const ProductSchema = new mongoose.Schema({
   sku: {
     type: String,
     required: [true, 'SKU is required'],
-    unique: true,
     trim: true
   },
   price: {
@@ -34,5 +38,8 @@ const ProductSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Compound index to ensure unique SKU per shop
+ProductSchema.index({ shopId: 1, sku: 1 }, { unique: true });
 
 module.exports = mongoose.model('Product', ProductSchema);
