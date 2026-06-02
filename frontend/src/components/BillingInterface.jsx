@@ -88,6 +88,12 @@ export default function BillingInterface() {
   const [customersSearch, setCustomersSearch] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
+  // Super Admin Platform States
+  const [superAdminShops, setSuperAdminShops] = useState([]);
+  const [superAdminMetrics, setSuperAdminMetrics] = useState(null);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [superAdminLoading, setSuperAdminLoading] = useState(false);
+
   // Cart & POS Billing State
   const [cart, setCart] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
@@ -140,7 +146,7 @@ export default function BillingInterface() {
 
   // Fetch product catalog per tenant
   const fetchProducts = async () => {
-    if (!token) return;
+    if (!token || user?.role === 'SuperAdmin') return;
     try {
       setProductsLoading(true);
       const res = await fetch(`${API_BASE_URL}/products`, {
@@ -161,14 +167,14 @@ export default function BillingInterface() {
   };
 
   useEffect(() => {
-    if (token) {
+    if (token && user?.role !== 'SuperAdmin') {
       fetchProducts();
     }
-  }, [token, currentView]);
+  }, [token, currentView, user]);
 
   // Fetch Dashboard / Analytical Data
   const fetchDashboardData = async () => {
-    if (!token) return;
+    if (!token || user?.role === 'SuperAdmin') return;
     try {
       setDashboardLoading(true);
       const [billsRes, customersRes, analyticsRes] = await Promise.all([
@@ -200,15 +206,80 @@ export default function BillingInterface() {
   };
 
   useEffect(() => {
-    if (token && currentView === 'dashboard') {
+    if (token && currentView === 'dashboard' && user?.role !== 'SuperAdmin') {
       fetchDashboardData();
     }
-  }, [token, currentView]);
+  }, [token, currentView, user]);
+
+  // Fetch Super Admin platform statistics and registered shops
+  const fetchSuperAdminData = async () => {
+    if (!token || user?.role !== 'SuperAdmin') return;
+    try {
+      setSuperAdminLoading(true);
+      const [dashRes, shopsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/super-admin/dashboard`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_BASE_URL}/super-admin/shops`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+      
+      if (dashRes.ok) {
+        const dashData = await dashRes.json();
+        setSuperAdminMetrics(dashData.metrics);
+        setRecentActivity([]); // No longer tracking POS logs
+      }
+      
+      if (shopsRes.ok) {
+        const shopsData = await shopsRes.json();
+        setSuperAdminShops(shopsData);
+      }
+    } catch (err) {
+      console.error('Error loading platform dashboard:', err);
+      triggerNotification('error', 'Failed to fetch platform administration data.');
+    } finally {
+      setSuperAdminLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token && user?.role === 'SuperAdmin') {
+      fetchSuperAdminData();
+    }
+  }, [token, user]);
+
+  // Toggle active suspension status for a shop
+  const handleToggleShopStatus = async (shopId, currentStatus) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/super-admin/shops/${shopId}/status`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isActive: !currentStatus })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        triggerNotification('success', `Updated shop status successfully!`);
+        // Update local UI state
+        setSuperAdminShops(prev => prev.map(s => s.shopId === shopId ? { ...s, isActive: !currentStatus } : s));
+        if (superAdminMetrics) {
+          setSuperAdminMetrics(prev => ({
+            ...prev,
+            activeShops: !currentStatus ? prev.activeShops + 1 : prev.activeShops - 1
+          }));
+        }
+      } else {
+        throw new Error(data.error || 'Failed to toggle status');
+      }
+    } catch (err) {
+      triggerNotification('error', err.message);
+    }
+  };
 
   // Autofill customer name and email if phone is registered for this shop
   useEffect(() => {
     const fetchRegisteredCustomer = async () => {
-      if (customerPhone.length === 10 && token) {
+      if (customerPhone.length === 10 && token && user?.role !== 'SuperAdmin') {
         try {
           const formattedPhone = `+91 ${customerPhone}`;
           const res = await fetch(`${API_BASE_URL}/customers/search?phone=${encodeURIComponent(formattedPhone)}`, {
@@ -227,7 +298,7 @@ export default function BillingInterface() {
     };
     
     fetchRegisteredCustomer();
-  }, [customerPhone, token]);
+  }, [customerPhone, token, user]);
 
   // --- AUTHENTICATION ACTIONS ---
   
@@ -317,6 +388,9 @@ export default function BillingInterface() {
     setUser(null);
     setShop(null);
     setCart([]);
+    setSuperAdminShops([]);
+    setSuperAdminMetrics(null);
+    setRecentActivity([]);
     setCurrentView('pos');
     triggerNotification('info', 'Logged out cleanly from SaaS portal');
   };
@@ -649,12 +723,163 @@ export default function BillingInterface() {
     }
   };
 
+  // ==========================================
+  // SUPER ADMIN RENDER FUNCTION (PLATFORM PANEL OVERVIEW)
+  // ==========================================
+  const renderSuperAdminPortal = () => {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 sm:p-6 md:p-8 flex flex-col gap-6">
+        {/* Header */}
+        <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 bg-slate-900/60 border border-slate-800 p-5 sm:p-6 rounded-2xl backdrop-blur-md">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent leading-none">
+                Platform Admin Panel
+              </h1>
+              <span className="px-3 py-1 rounded-full text-xs font-black bg-indigo-500/10 text-indigo-400 border border-indigo-500/25 uppercase tracking-widest">
+                Super Admin
+              </span>
+            </div>
+            <p className="text-sm sm:text-base text-slate-400 mt-1 font-semibold">Track registered business shops and manage platform access status</p>
+          </div>
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            <button
+              onClick={fetchSuperAdminData}
+              className="flex-1 lg:flex-initial px-5 py-2.5 text-xs font-extrabold bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl transition"
+            >
+              🔄 Refresh Platform Data
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex-1 lg:flex-initial px-5 py-2.5 text-xs font-extrabold rounded-xl border border-rose-500/20 bg-rose-950/20 hover:bg-rose-900/30 text-rose-450 transition"
+            >
+              Logout Control Room
+            </button>
+          </div>
+        </header>
+
+        {superAdminLoading ? (
+          <div className="flex-1 flex items-center justify-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-400"></div>
+          </div>
+        ) : (
+          <>
+            {/* Platform metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between hover:border-indigo-500/30 transition duration-200">
+                <div>
+                  <span className="text-[10px] uppercase font-black tracking-widest text-slate-500 block mb-1">Total Registered Shops</span>
+                  <h3 className="text-3xl font-black text-slate-100 font-mono mt-1">
+                    {superAdminMetrics?.totalShops || 0}
+                  </h3>
+                </div>
+                <span className="text-xs text-indigo-400 font-extrabold mt-4 uppercase tracking-wider block">
+                  🏢 Tenant Registry Count
+                </span>
+              </div>
+
+              <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between hover:border-emerald-500/30 transition duration-200">
+                <div>
+                  <span className="text-[10px] uppercase font-black tracking-widest text-slate-500 block mb-1">Active Store Access</span>
+                  <h3 className="text-3xl font-black text-slate-100 font-mono mt-1">
+                    {superAdminMetrics?.activeShops || 0}
+                  </h3>
+                </div>
+                <span className="text-xs text-emerald-400 font-extrabold mt-4 uppercase tracking-wider block">
+                  🟢 Logins Allowed
+                </span>
+              </div>
+
+              <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between hover:border-rose-500/30 transition duration-200">
+                <div>
+                  <span className="text-[10px] uppercase font-black tracking-widest text-slate-500 block mb-1">Suspended Access</span>
+                  <h3 className="text-3xl font-black text-slate-100 font-mono mt-1">
+                    {superAdminMetrics?.suspendedShops || 0}
+                  </h3>
+                </div>
+                <span className="text-xs text-rose-400 font-extrabold mt-4 uppercase tracking-wider block">
+                  🔴 Access Denied
+                </span>
+              </div>
+            </div>
+
+            {/* Shop access management grid */}
+            <div className="bg-slate-900/30 border border-slate-800 p-5 sm:p-6 rounded-2xl">
+              <div className="border-b border-slate-800 pb-4 mb-4">
+                <h3 className="text-xs sm:text-sm font-black uppercase text-indigo-400 tracking-wider">🏢 Registered Shops & Merchant Info</h3>
+              </div>
+
+              <div className="overflow-x-auto">
+                {superAdminShops.length === 0 ? (
+                  <div className="text-center p-10 border border-dashed border-slate-800 rounded-2xl my-4">
+                    <span className="text-4xl mb-2 block">🏢</span>
+                    <p className="text-slate-400 font-bold text-sm">No registered tenant shops registered on this SaaS platform.</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left border-collapse min-w-[900px]">
+                    <thead>
+                      <tr className="border-b border-slate-850 text-slate-400 text-xs uppercase font-extrabold tracking-wider">
+                        <th className="py-3.5 px-4">Store Name & Info</th>
+                        <th className="py-3.5 px-4">Tenant ID</th>
+                        <th className="py-3.5 px-4">Owner Profile</th>
+                        <th className="py-3.5 px-4">Business Contact</th>
+                        <th className="py-3.5 px-4">Registered Date</th>
+                        <th className="py-3.5 px-4 text-center">System Access Switch</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-850 text-xs sm:text-sm font-semibold">
+                      {superAdminShops.map(s => (
+                        <tr key={s.shopId} className="hover:bg-slate-900/30 transition duration-150">
+                          <td className="py-4.5 px-4">
+                            <div className="font-bold text-slate-200 text-sm sm:text-base">{s.name}</div>
+                            <div className="text-xs text-slate-500 font-medium mt-0.5">{s.description || 'No description'}</div>
+                          </td>
+                          <td className="py-4.5 px-4 font-mono font-bold text-indigo-400">{s.shopId}</td>
+                          <td className="py-4.5 px-4">
+                            <div className="text-slate-200 font-bold">{s.owner?.name || 'N/A'}</div>
+                            <div className="text-xs text-slate-500 font-mono mt-0.5">{s.owner?.email || 'N/A'}</div>
+                          </td>
+                          <td className="py-4.5 px-4 text-slate-350">
+                            <div className="font-bold">{s.contact || <span className="text-slate-600 font-medium italic">None</span>}</div>
+                          </td>
+                          <td className="py-4.5 px-4 text-slate-450 font-bold">
+                            {new Date(s.createdAt).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </td>
+                          <td className="py-4.5 px-4 text-center">
+                            <button
+                              onClick={() => handleToggleShopStatus(s.shopId, s.isActive)}
+                              className={`px-4.5 py-1.5 rounded-xl text-xs font-extrabold uppercase transition active:scale-95 border ${
+                                s.isActive
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-rose-500/15 hover:text-rose-400 hover:border-rose-500/30'
+                                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-emerald-500/15 hover:text-emerald-400 hover:border-emerald-500/30'
+                              }`}
+                            >
+                              {s.isActive ? 'Active (Suspend)' : 'Suspended (Activate)'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
   // RENDER AUTHENTICATION VIEW IF NOT LOGGED IN
   if (!token) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6 sm:p-8 font-sans">
         {notification && (
-          <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl bg-emerald-950/95 text-emerald-300 border border-emerald-500/40">
+          <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl bg-emerald-955 text-emerald-300 border border-emerald-500/40">
             <span className="text-base font-bold">{notification.message}</span>
           </div>
         )}
@@ -765,7 +990,7 @@ export default function BillingInterface() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-sm sm:text-base uppercase tracking-widest rounded-xl transition duration-150 shadow-xl shadow-emerald-500/10 disabled:opacity-40"
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-sm sm:text-base uppercase tracking-widest rounded-xl transition duration-155 shadow-xl shadow-emerald-500/10 disabled:opacity-40"
             >
               {loading ? 'Processing...' : authMode === 'login' ? '🔐 Sign In' : '🚀 Setup Shop Tenant'}
             </button>
@@ -790,12 +1015,17 @@ export default function BillingInterface() {
     );
   }
 
-  // CORE SAAS APP CONTENT
+  // RENDER SUPER ADMIN PORTAL IF THE ROLE IS SUPERADMIN
+  if (user && user.role === 'SuperAdmin') {
+    return renderSuperAdminPortal();
+  }
+
+  // CORE SAAS APP CONTENT (CASHIER / MERCHANT SUITE)
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 sm:p-6 md:p-8 flex flex-col">
       {/* Dynamic Toast Notification */}
       {notification && (
-        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl bg-emerald-950 text-emerald-350 border border-emerald-500/30">
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl bg-emerald-950 text-emerald-305 border border-emerald-500/30">
           <span className="text-sm sm:text-base font-bold">{notification.message}</span>
         </div>
       )}
@@ -875,7 +1105,7 @@ export default function BillingInterface() {
           {/* Logout Trigger */}
           <button
             onClick={handleLogout}
-            className="px-4 py-2.5 text-sm font-extrabold rounded-xl border border-rose-500/25 bg-rose-950/20 hover:bg-rose-900/30 text-rose-450 transition"
+            className="px-4 py-2.5 text-sm font-extrabold rounded-xl border border-rose-500/25 bg-rose-950/20 hover:bg-rose-900/30 text-rose-455 transition"
           >
             Logout
           </button>
@@ -901,7 +1131,7 @@ export default function BillingInterface() {
         <div className="max-w-2xl mx-auto w-full bg-slate-900/40 border border-slate-800 p-8 sm:p-10 rounded-3xl backdrop-blur-md my-4 flex flex-col gap-6">
           <div className="border-b border-slate-800 pb-4 flex justify-between items-center">
             <h2 className="text-xl font-black text-indigo-400 uppercase tracking-wider">⚙️ Store Customization</h2>
-            <span className="text-xs text-slate-500 font-mono font-bold">Tenant ID: {shop?.shopId}</span>
+            <span className="text-xs text-slate-550 font-mono font-bold">Tenant ID: {shop?.shopId}</span>
           </div>
 
           <form onSubmit={handleShopSettingsUpdate} className="flex flex-col gap-5">
@@ -1054,7 +1284,7 @@ export default function BillingInterface() {
                     >
                       {/* Floating Stock Tag */}
                       <span className={`absolute top-3 right-3 px-2.5 py-1 text-[10px] sm:text-xs font-black rounded-full uppercase tracking-wider ${
-                        isOutOfStock ? 'bg-rose-950/60 text-rose-450' :
+                        isOutOfStock ? 'bg-rose-950/60 text-rose-455' :
                         remainingStock <= 5 ? 'bg-amber-950/60 text-amber-400' : 'bg-slate-950/60 text-slate-400'
                       }`}>
                         {isOutOfStock ? 'Sold Out' : `Stock: ${remainingStock} kg`}
@@ -1191,7 +1421,7 @@ export default function BillingInterface() {
                     {editingProduct ? '✏️ Update Catalog Item' : '✨ Add New Product'}
                   </h3>
 
-                  <div className="flex flex-col gap-3.5 bg-slate-950/60 p-4 rounded-xl border border-slate-850">
+                  <div className="flex flex-col gap-3.5 bg-slate-950/60 p-4 rounded-xl border border-slate-855">
                     <div>
                       <label className="text-xs font-bold text-slate-400 block mb-1">Product Name *</label>
                       <input
@@ -1321,7 +1551,7 @@ export default function BillingInterface() {
                           value={customerName}
                           onChange={(e) => setCustomerName(e.target.value)}
                           placeholder="Customer Name *"
-                          className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition"
+                          className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-555 transition"
                         />
                       </div>
                       <div>
@@ -1330,7 +1560,7 @@ export default function BillingInterface() {
                           value={customerEmail}
                           onChange={(e) => setCustomerEmail(e.target.value)}
                           placeholder="Email Address (Optional for E-billing)"
-                          className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-500 transition"
+                          className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500/80 text-slate-100 placeholder-slate-555 transition"
                         />
                       </div>
                     </div>
@@ -1362,7 +1592,7 @@ export default function BillingInterface() {
                                   {item.weightChoice}
                                 </span>
                               </p>
-                              <p className="text-xs text-slate-450 mt-0.5 font-bold font-mono">₹{item.price.toFixed(2)} each</p>
+                              <p className="text-xs text-slate-455 mt-0.5 font-bold font-mono">₹{item.price.toFixed(2)} each</p>
                             </div>
                             
                             <div className="flex items-center gap-2">
@@ -1415,7 +1645,7 @@ export default function BillingInterface() {
                             className={`py-2 rounded-xl text-xs font-bold border transition duration-150 ${
                               paymentMethod === method
                                 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/60 shadow-inner'
-                                : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-450'
+                                : 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-455'
                             }`}
                           >
                             {method}
@@ -1486,7 +1716,7 @@ export default function BillingInterface() {
                   </span>
                 </div>
 
-                <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-2xl flex flex-col justify-between hover:border-amber-500/30 transition duration-200">
+                <div className="bg-slate-900/40 border border-slate-850 p-6 rounded-2xl flex flex-col justify-between hover:border-amber-500/30 transition duration-200">
                   <div>
                     <span className="text-[10px] uppercase font-black tracking-widest text-slate-500 block mb-1">Delivery Success</span>
                     <div className="text-xs space-y-1 mt-2 text-slate-300 font-bold">
@@ -1514,7 +1744,7 @@ export default function BillingInterface() {
               {analytics && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                   {/* Payments Breakdown widget */}
-                  <div className="bg-slate-900/30 border border-slate-800/80 p-5 rounded-2xl">
+                  <div className="bg-slate-900/30 border border-slate-800/85 p-5 rounded-2xl">
                     <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-4">💵 Payment Methods Breakdown</h3>
                     {analytics.paymentBreakdown?.length === 0 ? (
                       <p className="text-sm text-slate-555 text-center py-5">No payment stats compiled yet.</p>
@@ -1539,7 +1769,7 @@ export default function BillingInterface() {
                   </div>
 
                   {/* Top selling inventory widget */}
-                  <div className="bg-slate-900/30 border border-slate-800/80 p-5 rounded-2xl">
+                  <div className="bg-slate-900/30 border border-slate-800/85 p-5 rounded-2xl">
                     <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-4">⭐ Top Selling Product Items</h3>
                     {analytics.topProducts?.length === 0 ? (
                       <p className="text-sm text-slate-555 text-center py-5">No sales inventory stats recorded yet.</p>
@@ -1592,7 +1822,7 @@ export default function BillingInterface() {
                         value={billsSearch}
                         onChange={(e) => setBillsSearch(e.target.value)}
                         placeholder="Search invoices by # or client..."
-                        className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-cyan-500 text-slate-100 placeholder-slate-500 transition font-mono font-bold"
+                        className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-cyan-500 text-slate-100 placeholder-slate-550 transition font-mono font-bold"
                       />
                     ) : (
                       <input
@@ -1600,10 +1830,10 @@ export default function BillingInterface() {
                         value={customersSearch}
                         onChange={(e) => setCustomersSearch(e.target.value)}
                         placeholder="Search clients by name or phone..."
-                        className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-cyan-500 text-slate-100 placeholder-slate-550 transition font-bold"
+                        className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-cyan-500 text-slate-105 placeholder-slate-550 transition font-bold"
                       />
                     )}
-                    <span className="absolute left-3 top-3 text-xs sm:text-sm text-slate-500">🔍</span>
+                    <span className="absolute left-3 top-3 text-xs sm:text-sm text-slate-550">🔍</span>
                   </div>
                 </div>
 
@@ -1623,7 +1853,7 @@ export default function BillingInterface() {
                     ) : (
                       <table className="w-full text-left border-collapse min-w-[800px]">
                         <thead>
-                          <tr className="border-b border-slate-850 text-slate-400 text-xs uppercase font-extrabold tracking-wider">
+                          <tr className="border-b border-slate-850 text-slate-450 text-xs uppercase font-extrabold tracking-wider">
                             <th className="py-3 px-4">Invoice #</th>
                             <th className="py-3 px-4">Customer</th>
                             <th className="py-3 px-4">Date</th>
@@ -1712,7 +1942,7 @@ export default function BillingInterface() {
                     ) : (
                       <table className="w-full text-left border-collapse min-w-[700px]">
                         <thead>
-                          <tr className="border-b border-slate-850 text-slate-400 text-xs uppercase font-extrabold tracking-wider">
+                          <tr className="border-b border-slate-850 text-slate-450 text-xs uppercase font-extrabold tracking-wider">
                             <th className="py-3 px-4">Client Name</th>
                             <th className="py-3 px-4">WhatsApp Contact</th>
                             <th className="py-3 px-4">Email</th>
@@ -1763,7 +1993,7 @@ export default function BillingInterface() {
             {/* Branded Receipt Title */}
             <div className="text-center pb-5 border-b border-dashed border-slate-300">
               <h2 className="text-2xl font-black tracking-widest text-slate-800 uppercase leading-none">{shop?.name || 'SaaS POS'}</h2>
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">{shop?.description || 'Invoice Receipt'}</p>
+              <p className="text-xs text-slate-505 font-bold uppercase tracking-wider mt-1">{shop?.description || 'Invoice Receipt'}</p>
               <p className="text-xs text-slate-550 font-semibold mt-0.5">Contact: {shop?.contact || 'support@saaspos.com'}</p>
             </div>
 

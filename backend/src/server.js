@@ -24,6 +24,7 @@ app.use('/api/products', authMiddleware, require('./routes/productRoutes'));
 app.use('/api/bills', require('./routes/billRoutes'));
 app.use('/api/customers', authMiddleware, require('./routes/customerRoutes'));
 app.use('/api/analytics', authMiddleware, require('./routes/analyticsRoutes'));
+app.use('/api/super-admin', require('./routes/superAdminRoutes'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
