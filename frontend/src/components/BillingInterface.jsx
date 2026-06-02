@@ -16,10 +16,11 @@ const getMultiplier = (weightChoice) => {
   return val ? val / 1000 : 1;
 };
 
-const getLocalDateString = (dateObj) => {
-  const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getDate()).padStart(2, '0');
+const getLocalDateString = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
@@ -94,18 +95,14 @@ export default function BillingInterface() {
   const [billsSearch, setBillsSearch] = useState('');
   const [customersSearch, setCustomersSearch] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [filterDate, setFilterDate] = useState(getLocalDateString(new Date()));
+  const dateInputRef = React.useRef(null);
 
   // Super Admin Platform States
   const [superAdminShops, setSuperAdminShops] = useState([]);
   const [superAdminMetrics, setSuperAdminMetrics] = useState(null);
   const [recentActivity, setRecentActivity] = useState([]);
   const [superAdminLoading, setSuperAdminLoading] = useState(false);
-
-  // Daily Sales trend pagination state (for 10-day window)
-  const [salesPageIndex, setSalesPageIndex] = useState(0);
-
-  // Invoice history filter date (defaults to today's local date in YYYY-MM-DD format)
-  const [selectedHistoryDate, setSelectedHistoryDate] = useState(() => getLocalDateString(new Date()));
 
   // Cart & POS Billing State
   const [cart, setCart] = useState([]);
@@ -119,6 +116,20 @@ export default function BillingInterface() {
   // UI States
   const [notification, setNotification] = useState(null);
   const [showMobileCart, setShowMobileCart] = useState(false);
+
+  const filteredBills = useMemo(() => {
+    return bills.filter(bill => {
+      const search = billsSearch.toLowerCase();
+      const invMatches = bill.invoiceNumber?.toLowerCase().includes(search);
+      const nameMatches = bill.customer?.name?.toLowerCase().includes(search);
+      const phoneMatches = bill.customer?.phone?.includes(search);
+      
+      const billDateStr = getLocalDateString(new Date(bill.createdAt));
+      const dateMatches = billDateStr === filterDate;
+      
+      return (invMatches || nameMatches || phoneMatches) && dateMatches;
+    });
+  }, [bills, billsSearch, filterDate]);
 
   // Trigger Dynamic Notifications
   const triggerNotification = (type, message) => {
@@ -539,114 +550,6 @@ export default function BillingInterface() {
     const total = parseFloat(subtotal.toFixed(2));
     return { subtotal, tax: 0, discount: 0, total };
   }, [cart]);
-
-  const handleAdjustHistoryDate = (daysOffset) => {
-    const parts = selectedHistoryDate.split('-');
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    
-    const current = new Date(year, month, day);
-    current.setDate(current.getDate() + daysOffset);
-    setSelectedHistoryDate(getLocalDateString(current));
-  };
-
-  const paymentMethodStats = useMemo(() => {
-    let cashAmt = 0;
-    let cardAmt = 0;
-    let upiAmt = 0;
-    let cashCount = 0;
-    let cardCount = 0;
-    let upiCount = 0;
-
-    if (analytics?.paymentBreakdown) {
-      analytics.paymentBreakdown.forEach(item => {
-        const name = item._id.toLowerCase();
-        if (name === 'cash') {
-          cashAmt += item.amount;
-          cashCount += item.count;
-        } else if (name === 'card' || name === 'crd') {
-          cardAmt += item.amount;
-          cardCount += item.count;
-        } else if (name === 'upi') {
-          upiAmt += item.amount;
-          upiCount += item.count;
-        }
-      });
-    } else {
-      // Fallback
-      bills.forEach(bill => {
-        const name = bill.paymentMethod.toLowerCase();
-        if (name === 'cash') {
-          cashAmt += bill.total;
-          cashCount += 1;
-        } else if (name === 'card' || name === 'crd') {
-          cardAmt += bill.total;
-          cardCount += 1;
-        } else if (name === 'upi') {
-          upiAmt += bill.total;
-          upiCount += 1;
-        }
-      });
-    }
-
-    const total = cashAmt + cardAmt + upiAmt;
-    return {
-      cash: { amount: cashAmt, count: cashCount, percent: total > 0 ? (cashAmt / total) * 100 : 0 },
-      card: { amount: cardAmt, count: cardCount, percent: total > 0 ? (cardAmt / total) * 100 : 0 },
-      upi: { amount: upiAmt, count: upiCount, percent: total > 0 ? (upiAmt / total) * 100 : 0 },
-      total
-    };
-  }, [analytics, bills]);
-
-  const dailySales = useMemo(() => {
-    const data = [];
-    const today = new Date();
-    const startOffset = salesPageIndex * 10;
-
-    for (let i = 0; i < 10; i++) {
-      const targetDate = new Date();
-      targetDate.setDate(today.getDate() - (startOffset + i));
-      const dateStr = getLocalDateString(targetDate);
-
-      const dayBills = bills.filter(bill => {
-        const billDate = new Date(bill.createdAt);
-        return getLocalDateString(billDate) === dateStr;
-      });
-
-      const revenue = dayBills.reduce((sum, b) => sum + b.total, 0);
-
-      data.push({
-        dateStr,
-        displayDate: targetDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
-        displayYear: targetDate.getFullYear(),
-        revenue,
-        billCount: dayBills.length
-      });
-    }
-    return data;
-  }, [bills, salesPageIndex]);
-
-  const maxDayRevenue = useMemo(() => {
-    const revs = dailySales.map(d => d.revenue);
-    const max = Math.max(...revs);
-    return max > 0 ? max : 1;
-  }, [dailySales]);
-
-  const filteredHistoryBills = useMemo(() => {
-    return bills.filter(bill => {
-      const search = billsSearch.toLowerCase();
-      const invMatches = bill.invoiceNumber?.toLowerCase().includes(search);
-      const nameMatches = bill.customer?.name?.toLowerCase().includes(search);
-      const phoneMatches = bill.customer?.phone?.includes(search);
-      const matchesSearch = !search || invMatches || nameMatches || phoneMatches;
-      
-      const billDateStr = getLocalDateString(new Date(bill.createdAt));
-      const matchesDate = billDateStr === selectedHistoryDate;
-      
-      return matchesSearch && matchesDate;
-    });
-  }, [bills, billsSearch, selectedHistoryDate]);
 
   // POS sales checkout
   const handleCheckout = async (e) => {
@@ -1863,198 +1766,48 @@ export default function BillingInterface() {
 
               {/* Aggregation Charts & Data breakdown */}
               {analytics && (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                  {/* Daily Sales Trend (Paginated 10-day list) */}
-                  <div className="bg-slate-900/30 border border-slate-800 p-5 rounded-2xl flex flex-col gap-4">
-                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                      <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">📅 Daily Sales Trend</h3>
-                      
-                      {/* Pagination Controls */}
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setSalesPageIndex(prev => prev + 1)}
-                          className="h-7 w-7 rounded-lg bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 flex items-center justify-center text-xs active:scale-90 transition font-bold"
-                          title="Older 10 Days"
-                        >
-                          ←
-                        </button>
-                        <span className="text-[10px] font-mono font-bold bg-slate-950 px-2 py-1 rounded border border-slate-850 text-slate-450">
-                          {dailySales[9]?.displayDate} - {dailySales[0]?.displayDate}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={salesPageIndex === 0}
-                          onClick={() => setSalesPageIndex(prev => prev - 1)}
-                          className="h-7 w-7 rounded-lg bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center text-xs active:scale-90 transition font-bold"
-                          title="Newer 10 Days"
-                        >
-                          →
-                        </button>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                  {/* Payments Breakdown widget */}
+                  <div className="bg-slate-900/30 border border-slate-800/85 p-5 rounded-2xl">
+                    <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-4">💵 Payment Methods Breakdown</h3>
+                    {analytics.paymentBreakdown?.length === 0 ? (
+                      <p className="text-sm text-slate-555 text-center py-5">No payment stats compiled yet.</p>
+                    ) : (
+                      <div className="space-y-3.5">
+                        {analytics.paymentBreakdown.map(item => {
+                          const percent = (item.amount / (analytics.metrics.totalRevenue || 1)) * 100;
+                          return (
+                            <div key={item._id} className="space-y-1.5">
+                              <div className="flex justify-between text-xs sm:text-sm font-bold text-slate-300">
+                                <span>{item._id} ({item.count} bills)</span>
+                                <span className="font-mono text-emerald-400">₹{item.amount.toFixed(2)} ({percent.toFixed(0)}%)</span>
+                              </div>
+                              <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800">
+                                <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${percent}%` }}></div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                    </div>
-
-                    <div className="flex-1 flex flex-col gap-3">
-                      {dailySales.map(day => {
-                        const ratio = (day.revenue / maxDayRevenue) * 100;
-                        return (
-                          <div key={day.dateStr} className="flex items-center justify-between text-xs sm:text-sm font-semibold">
-                            <div className="w-14 text-slate-400 text-xs font-bold font-mono">
-                              {day.displayDate}
-                            </div>
-                            
-                            {/* Visual Bar Chart sparkline */}
-                            <div className="flex-1 mx-3 bg-slate-950/80 h-3.5 rounded-md border border-slate-900/60 overflow-hidden relative">
-                              {day.revenue > 0 && (
-                                <div
-                                  className="h-full rounded-r bg-gradient-to-r from-cyan-600/60 to-cyan-400 shadow-md transition-all duration-500 ease-out"
-                                  style={{ width: `${Math.max(ratio, 4)}%` }}
-                                ></div>
-                              )}
-                            </div>
-
-                            <div className="text-right w-24">
-                              <span className="font-mono text-cyan-400 font-bold block">
-                                ₹{day.revenue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </span>
-                              <span className="text-[9px] text-slate-500 font-medium block mt-0.5">
-                                {day.billCount} {day.billCount === 1 ? 'invoice' : 'invoices'}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    )}
                   </div>
 
-                  {/* Payments Breakdown Pie Chart Graph */}
-                  <div className="bg-slate-900/30 border border-slate-800 p-5 rounded-2xl flex flex-col gap-4">
-                    <div className="border-b border-slate-800 pb-3 flex justify-between items-center">
-                      <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">💵 Payment Distribution</h3>
-                      <span className="text-[10px] font-mono font-bold bg-slate-950 px-2.5 py-1 rounded border border-slate-850 text-emerald-400">
-                        Total: ₹{Math.round(paymentMethodStats.total).toLocaleString('en-IN')}
-                      </span>
-                    </div>
-                    
-                    <div className="flex-1 flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center justify-center gap-6 py-2">
-                      {/* SVG Pie Chart (Solid) */}
-                      <div className="relative flex items-center justify-center">
-                        <svg viewBox="0 0 100 100" className="w-36 h-36 md:w-40 md:h-40">
-                          {paymentMethodStats.total === 0 ? (
-                            <circle
-                              cx="50"
-                              cy="50"
-                              r={18}
-                              fill="transparent"
-                              stroke="#1e293b"
-                              strokeWidth="36"
-                            />
-                          ) : (
-                            <>
-                              {paymentMethodStats.cash.percent > 0 && (
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r={18}
-                                  fill="transparent"
-                                  stroke="#10b981"
-                                  strokeWidth="36"
-                                  strokeDasharray={113.1}
-                                  strokeDashoffset={113.1 - (113.1 * paymentMethodStats.cash.percent) / 100}
-                                  transform={`rotate(${-90} 50 50)`}
-                                  className="transition-all duration-500 ease-out"
-                                />
-                              )}
-                              {paymentMethodStats.card.percent > 0 && (
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r={18}
-                                  fill="transparent"
-                                  stroke="#3b82f6"
-                                  strokeWidth="36"
-                                  strokeDasharray={113.1}
-                                  strokeDashoffset={113.1 - (113.1 * paymentMethodStats.card.percent) / 100}
-                                  transform={`rotate(${-90 + (paymentMethodStats.cash.percent * 360) / 100} 50 50)`}
-                                  className="transition-all duration-500 ease-out"
-                                />
-                              )}
-                              {paymentMethodStats.upi.percent > 0 && (
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r={18}
-                                  fill="transparent"
-                                  stroke="#f59e0b"
-                                  strokeWidth="36"
-                                  strokeDasharray={113.1}
-                                  strokeDashoffset={113.1 - (113.1 * paymentMethodStats.upi.percent) / 100}
-                                  transform={`rotate(${-90 + ((paymentMethodStats.cash.percent + paymentMethodStats.card.percent) * 360) / 100} 50 50)`}
-                                  className="transition-all duration-500 ease-out"
-                                />
-                              )}
-                            </>
-                          )}
-                        </svg>
-                      </div>
-
-                      {/* Legends */}
-                      <div className="flex-1 flex flex-col gap-3 w-full sm:w-auto lg:w-full xl:w-auto">
-                        {/* Cash Legend */}
-                        <div className="flex items-center justify-between border border-slate-900 bg-slate-950/40 px-3 py-1.5 rounded-xl gap-3">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#10b981] inline-block"></span>
-                            <span className="text-xs font-bold text-slate-350">Cash</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs font-mono font-bold text-slate-200 block">₹{paymentMethodStats.cash.amount.toFixed(0)}</span>
-                            <span className="text-[9px] font-mono text-slate-500 block">{paymentMethodStats.cash.percent.toFixed(0)}% • {paymentMethodStats.cash.count} bills</span>
-                          </div>
-                        </div>
-
-                        {/* Card Legend */}
-                        <div className="flex items-center justify-between border border-slate-900 bg-slate-950/40 px-3 py-1.5 rounded-xl gap-3">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] inline-block"></span>
-                            <span className="text-xs font-bold text-slate-350">Card</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs font-mono font-bold text-slate-200 block">₹{paymentMethodStats.card.amount.toFixed(0)}</span>
-                            <span className="text-[9px] font-mono text-slate-500 block">{paymentMethodStats.card.percent.toFixed(0)}% • {paymentMethodStats.card.count} bills</span>
-                          </div>
-                        </div>
-
-                        {/* UPI Legend */}
-                        <div className="flex items-center justify-between border border-slate-900 bg-slate-950/40 px-3 py-1.5 rounded-xl gap-3">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] inline-block"></span>
-                            <span className="text-xs font-bold text-slate-350">UPI</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs font-mono font-bold text-slate-200 block">₹{paymentMethodStats.upi.amount.toFixed(0)}</span>
-                            <span className="text-[9px] font-mono text-slate-500 block">{paymentMethodStats.upi.percent.toFixed(0)}% • {paymentMethodStats.upi.count} bills</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Top Selling Product Items */}
-                  <div className="bg-slate-900/30 border border-slate-800 p-5 rounded-2xl">
-                    <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider border-b border-slate-800 pb-3 mb-3">⭐ Top Selling Product Items</h3>
+                  {/* Top selling inventory widget */}
+                  <div className="bg-slate-900/30 border border-slate-800/85 p-5 rounded-2xl">
+                    <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-4">⭐ Top Selling Product Items</h3>
                     {analytics.topProducts?.length === 0 ? (
                       <p className="text-sm text-slate-555 text-center py-5">No sales inventory stats recorded yet.</p>
                     ) : (
-                      <div className="divide-y divide-slate-800/80 text-xs sm:text-sm flex flex-col justify-between h-[300px]">
-                        {analytics.topProducts.slice(0, 5).map((item, index) => (
-                          <div key={item._id} className="flex justify-between py-2 items-center flex-1">
+                      <div className="divide-y divide-slate-800 text-xs sm:text-sm">
+                        {analytics.topProducts.map((item, index) => (
+                          <div key={item._id} className="flex justify-between py-2.5 items-center">
                             <div className="flex items-center gap-3">
                               <span className="font-mono font-bold text-cyan-400">#{index+1}</span>
-                              <span className="font-bold text-slate-200 line-clamp-1 max-w-[120px]">{item._id}</span>
+                              <span className="font-bold text-slate-200">{item._id}</span>
                             </div>
                             <div className="text-right">
                               <div className="font-bold text-slate-300 font-mono">{item.quantity} kg sold</div>
-                              <div className="text-[10px] text-emerald-450 font-mono mt-0.5">₹{item.revenue.toFixed(0)} revenue</div>
+                              <div className="text-xs text-emerald-400 font-mono">₹{item.revenue.toFixed(2)} revenue</div>
                             </div>
                           </div>
                         ))}
@@ -2066,17 +1819,19 @@ export default function BillingInterface() {
 
               {/* Tables panel */}
               <div className="bg-slate-900/30 border border-slate-800 p-5 sm:p-6 rounded-2xl backdrop-blur-md flex flex-col gap-5 flex-1">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-b border-slate-800 pb-4">
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 border-b border-slate-800 pb-4">
                   <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-850 self-start">
                     <button
+                      type="button"
                       onClick={() => setDashboardTab('bills')}
                       className={`px-5 py-2 text-xs sm:text-sm font-bold rounded-lg transition duration-150 ${
                         dashboardTab === 'bills' ? 'bg-cyan-600 text-slate-100 shadow-md font-black' : 'text-slate-400 hover:text-slate-200'
                       }`}
                     >
-                      📜 Invoices History ({bills.length})
+                      📜 Invoices History ({dashboardTab === 'bills' ? filteredBills.length : bills.length})
                     </button>
                     <button
+                      type="button"
                       onClick={() => setDashboardTab('customers')}
                       className={`px-5 py-2 text-xs sm:text-sm font-bold rounded-lg transition duration-150 ${
                         dashboardTab === 'customers' ? 'bg-cyan-600 text-slate-100 shadow-md font-black' : 'text-slate-400 hover:text-slate-200'
@@ -2086,22 +1841,30 @@ export default function BillingInterface() {
                     </button>
                   </div>
 
-                  {dashboardTab === 'bills' ? (
-                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto items-center">
-                      {/* Date picker filter */}
-                      <input
-                        type="date"
-                        value={selectedHistoryDate}
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            setSelectedHistoryDate(e.target.value);
+                  <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-stretch sm:items-center">
+                    {dashboardTab === 'bills' && (
+                      <div 
+                        onClick={() => {
+                          try {
+                            dateInputRef.current?.showPicker();
+                          } catch (err) {
+                            console.warn("showPicker is not supported or failed:", err);
                           }
                         }}
-                        className="w-full sm:w-auto px-4.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-cyan-500 text-slate-100 transition font-mono font-black"
-                      />
-                      
-                      {/* Search box */}
-                      <div className="relative w-full sm:max-w-xs">
+                        className="relative flex items-center bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 focus-within:border-cyan-500 transition cursor-pointer"
+                      >
+                        <span className="text-[10px] text-slate-500 font-black uppercase mr-2 select-none">📅 Date:</span>
+                        <input
+                          ref={dateInputRef}
+                          type="date"
+                          value={filterDate}
+                          onChange={(e) => setFilterDate(e.target.value)}
+                          className="bg-transparent text-xs text-slate-200 focus:outline-none font-bold font-mono cursor-pointer scheme-dark"
+                        />
+                      </div>
+                    )}
+                    <div className="relative w-full sm:max-w-xs flex-1 sm:flex-initial">
+                      {dashboardTab === 'bills' ? (
                         <input
                           type="text"
                           value={billsSearch}
@@ -2109,131 +1872,149 @@ export default function BillingInterface() {
                           placeholder="Search invoices by # or client..."
                           className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-cyan-500 text-slate-100 placeholder-slate-550 transition font-mono font-bold"
                         />
-                        <span className="absolute left-3 top-3 text-xs sm:text-sm text-slate-550">🔍</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="relative w-full sm:max-w-xs">
-                      <input
-                        type="text"
-                        value={customersSearch}
-                        onChange={(e) => setCustomersSearch(e.target.value)}
-                        placeholder="Search clients by name or phone..."
-                        className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-cyan-500 text-slate-105 placeholder-slate-550 transition font-bold"
-                      />
+                      ) : (
+                        <input
+                          type="text"
+                          value={customersSearch}
+                          onChange={(e) => setCustomersSearch(e.target.value)}
+                          placeholder="Search clients by name or phone..."
+                          className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-cyan-500 text-slate-105 placeholder-slate-550 transition font-bold"
+                        />
+                      )}
                       <span className="absolute left-3 top-3 text-xs sm:text-sm text-slate-550">🔍</span>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {dashboardTab === 'bills' ? (
-                  <div className="overflow-x-auto">
-                    {filteredHistoryBills.length === 0 ? (
-                      <div className="text-center p-10 border border-dashed border-slate-800 rounded-2xl my-4">
-                        <span className="text-4xl mb-2 block">📄</span>
-                        <p className="text-slate-405 font-bold text-sm">No invoices found for this date.</p>
-                      </div>
-                    ) : (
-                      <table className="w-full text-left border-collapse min-w-[800px]">
-                        <thead>
-                          <tr className="border-b border-slate-850 text-slate-450 text-xs uppercase font-extrabold tracking-wider">
-                            <th className="py-3 px-4">Invoice #</th>
-                            <th className="py-3 px-4">Customer</th>
-                            <th className="py-3 px-4">Date</th>
-                            <th className="py-3 px-4">Total</th>
-                            <th className="py-3 px-4">Payment</th>
-                            <th className="py-3 px-4">WhatsApp</th>
-                            <th className="py-3 px-4">Email</th>
-                            <th className="py-3 px-4 text-right">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-850 text-xs sm:text-sm font-semibold">
-                          {filteredHistoryBills.map(bill => (
-                            <tr key={bill._id} className="hover:bg-slate-900/30 transition duration-150">
-                              <td className="py-3.5 px-4 font-mono font-black text-cyan-400">{bill.invoiceNumber}</td>
-                              <td className="py-3.5 px-4">
-                                <div className="font-bold text-slate-200">{bill.customer?.name || 'Walk-in'}</div>
-                                <div className="text-xs text-slate-500 font-mono font-bold mt-0.5">{bill.customer?.phone}</div>
-                              </td>
-                              <td className="py-3.5 px-4 text-slate-450 font-bold">
-                                {new Date(bill.createdAt).toLocaleDateString('en-IN', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </td>
-                              <td className="py-3.5 px-4 font-bold text-emerald-400 font-mono">₹{bill.total.toFixed(2)}</td>
-                              <td className="py-3.5 px-4">
-                                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-950 border border-slate-800 text-slate-350">
-                                  {bill.paymentMethod}
-                                </span>
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <span className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-extrabold border ${
-                                  bill.whatsappStatus === 'Sent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                  bill.whatsappStatus === 'Failed' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                                  'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                }`}>
-                                  {bill.whatsappStatus}
-                                </span>
-                              </td>
-                              <td className="py-3.5 px-4">
-                                <span className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-extrabold border ${
-                                  bill.emailStatus === 'Sent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                  bill.emailStatus === 'Failed' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                                  bill.emailStatus === 'N/A' ? 'bg-slate-900 text-slate-500 border-transparent' :
-                                  'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                }`}>
-                                  {bill.emailStatus || 'N/A'}
-                                </span>
-                              </td>
-                              <td className="py-3.5 px-4 text-right">
-                                <button
-                                  onClick={() => setSelectedInvoice(bill)}
-                                  className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-cyan-400 font-bold rounded-lg transition active:scale-95 text-xs whitespace-nowrap"
-                                >
-                                  📄 Receipt
-                                </button>
-                              </td>
+                  <div className="flex flex-col gap-5">
+                    <div className="overflow-x-auto">
+                      {filteredBills.length === 0 ? (
+                        <div className="text-center p-10 border border-dashed border-slate-800 rounded-2xl my-4">
+                          <span className="text-4xl mb-2 block">📄</span>
+                          <p className="text-slate-405 font-bold text-sm">No invoices found matching criteria.</p>
+                        </div>
+                      ) : (
+                        <table className="w-full text-left border-collapse min-w-[800px]">
+                          <thead>
+                            <tr className="border-b border-slate-850 text-slate-450 text-xs uppercase font-extrabold tracking-wider">
+                              <th className="py-3 px-4">Invoice #</th>
+                              <th className="py-3 px-4">Customer</th>
+                              <th className="py-3 px-4">Date</th>
+                              <th className="py-3 px-4">Total</th>
+                              <th className="py-3 px-4">Payment</th>
+                              <th className="py-3 px-4">WhatsApp</th>
+                              <th className="py-3 px-4">Email</th>
+                              <th className="py-3 px-4 text-right">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                    
-                    {/* Bottom Date Pagination Controls */}
-                    <div className="flex justify-between items-center mt-5 pt-4 border-t border-slate-850">
+                          </thead>
+                          <tbody className="divide-y divide-slate-850 text-xs sm:text-sm font-semibold">
+                            {filteredBills.map(bill => (
+                              <tr key={bill._id} className="hover:bg-slate-900/30 transition duration-150">
+                                <td className="py-3.5 px-4 font-mono font-black text-cyan-400">{bill.invoiceNumber}</td>
+                                <td className="py-3.5 px-4">
+                                  <div className="font-bold text-slate-200">{bill.customer?.name || 'Walk-in'}</div>
+                                  <div className="text-xs text-slate-500 font-mono font-bold mt-0.5">{bill.customer?.phone}</div>
+                                </td>
+                                <td className="py-3.5 px-4 text-slate-450 font-bold">
+                                  {new Date(bill.createdAt).toLocaleDateString('en-IN', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </td>
+                                <td className="py-3.5 px-4 font-bold text-emerald-400 font-mono">₹{bill.total.toFixed(2)}</td>
+                                <td className="py-3.5 px-4">
+                                  <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-950 border border-slate-800 text-slate-350">
+                                    {bill.paymentMethod}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  <span className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-extrabold border ${
+                                    bill.whatsappStatus === 'Sent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                    bill.whatsappStatus === 'Failed' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                    'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                  }`}>
+                                    {bill.whatsappStatus}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-4">
+                                  <span className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-extrabold border ${
+                                    bill.emailStatus === 'Sent' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                    bill.emailStatus === 'Failed' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                    bill.emailStatus === 'N/A' ? 'bg-slate-900 text-slate-500 border-transparent' :
+                                    'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                  }`}>
+                                    {bill.emailStatus || 'N/A'}
+                                  </span>
+                                </td>
+                                <td className="py-3.5 px-4 text-right">
+                                  <button
+                                    onClick={() => setSelectedInvoice(bill)}
+                                    className="px-3.5 py-1.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-cyan-400 font-bold rounded-lg transition active:scale-95 text-xs whitespace-nowrap"
+                                  >
+                                    📄 Receipt
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+
+                    {/* Navigation Arrow at the bottom for seeing prev/next day sales */}
+                    <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-slate-800 mt-2 gap-3">
                       <button
                         type="button"
-                        onClick={() => handleAdjustHistoryDate(-1)}
-                        className="px-4 py-2 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 hover:text-slate-100 font-bold rounded-xl active:scale-95 transition text-xs flex items-center gap-1.5"
+                        onClick={() => {
+                          const current = new Date(filterDate);
+                          current.setDate(current.getDate() - 1);
+                          setFilterDate(getLocalDateString(current));
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-cyan-400 font-bold transition duration-200 active:scale-95 text-xs group"
                       >
-                        ← Previous Day
-                      </button>
-                      
-                      <div className="text-center">
-                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Invoices For Date</span>
-                        <span className="text-xs sm:text-sm font-black text-cyan-400 font-mono mt-0.5 inline-block">
-                          {new Date(
-                            parseInt(selectedHistoryDate.split('-')[0], 10),
-                            parseInt(selectedHistoryDate.split('-')[1], 10) - 1,
-                            parseInt(selectedHistoryDate.split('-')[2], 10)
-                          ).toLocaleDateString('en-IN', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
+                        <span className="group-hover:-translate-x-0.5 transition duration-200">←</span>
+                        <span>Previous Day's Sales</span>
+                        <span className="text-[10px] text-slate-500 font-mono font-medium">
+                          ({new Date(new Date(filterDate).setDate(new Date(filterDate).getDate() - 1)).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })})
                         </span>
+                      </button>
+
+                      <div 
+                        onClick={() => {
+                          try {
+                            dateInputRef.current?.showPicker();
+                          } catch (err) {
+                            console.warn("showPicker is not supported or failed:", err);
+                          }
+                        }}
+                        className="text-xs text-slate-400 font-mono font-bold bg-slate-950 border border-slate-800 hover:border-cyan-500/40 px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 select-none cursor-pointer transition"
+                      >
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                        <span>{new Date(filterDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleAdjustHistoryDate(1)}
-                        className="px-4 py-2 bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-350 hover:text-slate-100 font-bold rounded-xl active:scale-95 transition text-xs flex items-center gap-1.5"
-                      >
-                        Next Day →
-                      </button>
+                      {filterDate !== getLocalDateString(new Date()) ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const current = new Date(filterDate);
+                            current.setDate(current.getDate() + 1);
+                            setFilterDate(getLocalDateString(current));
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-cyan-400 font-bold transition duration-200 active:scale-95 text-xs group"
+                        >
+                          <span>Next Day's Sales</span>
+                          <span className="text-[10px] text-slate-500 font-mono font-medium">
+                            ({new Date(new Date(filterDate).setDate(new Date(filterDate).getDate() + 1)).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })})
+                          </span>
+                          <span className="group-hover:translate-x-0.5 transition duration-200">→</span>
+                        </button>
+                      ) : (
+                        <div className="hidden sm:block w-[180px]" />
+                      )}
                     </div>
                   </div>
                 ) : (
