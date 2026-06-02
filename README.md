@@ -47,8 +47,12 @@ This repository contains a production-grade, highly scalable microservices POS b
   - [Mongoose Schemas](file:///c:/Users/Dell/Desktop/Bill-generation/backend/src/models/): `Product.js`, `Customer.js`, `Bill.js`.
   - [Billing Endpoint](file:///c:/Users/Dell/Desktop/Bill-generation/backend/src/routes/billRoutes.js): Atomically processes sales, inventory deductions, and publishes queue events.
 - [**`go-worker/`**](file:///c:/Users/Dell/Desktop/Bill-generation/go-worker/): Golang service featuring bounded goroutine worker pool, atomic distributed locks via Redis SETNX, and WhatsApp HTTP dispatch clients.
-- [**`frontend/`**](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/): React + Tailwind CSS mobile-first billing UI.
-  - [BillingInterface.jsx](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/src/components/BillingInterface.jsx): Responsive catalog selector, cart state, total sum calculator, and phone validator.
+- [**`frontend/`**](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/): React + Tailwind CSS mobile-first billing UI, refactored into modular sub-components.
+  - [BillingInterface.jsx](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/src/components/BillingInterface.jsx): Core state orchestrator and route dispatcher.
+  - [AuthScreen.jsx](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/src/components/AuthScreen.jsx): Handles merchant login, business setup, and sandbox Google sign-in forms.
+  - [PosView.jsx](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/src/components/PosView.jsx): Combines the product search catalog, category filters, and cashier cart sidebar.
+  - [DashboardView.jsx](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/src/components/DashboardView.jsx): Live analytical performance charts, clients database, and filtered invoices history.
+  - [Header.jsx](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/src/components/Header.jsx), [SettingsView.jsx](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/src/components/SettingsView.jsx), [InvoiceModal.jsx](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/src/components/InvoiceModal.jsx), [SuperAdminPortal.jsx](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/src/components/SuperAdminPortal.jsx).
 - [**`git-commit-helper.js`**](file:///c:/Users/Dell/Desktop/Bill-generation/git-commit-helper.js): Cross-platform Node.js git commit helper to automatically stage and commit files with descriptive summaries.
 
 ---
@@ -100,9 +104,11 @@ docker-compose up -d
 
 ### Step 4: Build or Integrate the Billing UI
 Mount the responsive component [**`BillingInterface.jsx`**](file:///c:/Users/Dell/Desktop/Bill-generation/frontend/src/components/BillingInterface.jsx) into your React application dashboard.
-- Features dynamic search and category filters.
-- Responsive cart scales cleanly to high-density smartphone screens.
-- Input validation pre-screens number inputs according to WhatsApp (E.164) specification.
+- **Modular Component Architecture**: Decoupled monolithic UI elements into clean, reusable files to prevent code bulkiness.
+- **Date-Based Filtering**: The dashboard defaults to showing the current date's transactions only, with date navigation controls (`←` / `→`) to browse previous/next days.
+- **Interactive Calendar Trigger**: Clicking anywhere on the date selector container or the date indicator pill programmatically opens the browser's calendar date chooser.
+- **Responsive Cart**: Scales cleanly across smartphones and high-resolution tablet screens.
+- **Input Validation**: Automatically screens and formats phone inputs to comply with the Meta WhatsApp Cloud API specification.
 
 ---
 
