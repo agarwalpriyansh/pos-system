@@ -197,13 +197,13 @@ export default function DashboardView({
                     />
                   </div>
                 )}
-                <div className="relative w-full sm:max-w-xs flex-1 sm:flex-initial">
+                <div className="relative w-full sm:max-w-xs flex-1 sm:flex-initial min-w-[200px] sm:min-w-[260px]">
                   {dashboardTab === 'bills' ? (
                     <input
                       type="text"
                       value={billsSearch}
                       onChange={(e) => setBillsSearch(e.target.value)}
-                      placeholder="Search invoices by # or client..."
+                      placeholder="Search by # or client..."
                       className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-cyan-500 text-slate-100 placeholder-slate-550 transition font-mono font-bold"
                     />
                   ) : (
@@ -211,7 +211,7 @@ export default function DashboardView({
                       type="text"
                       value={customersSearch}
                       onChange={(e) => setCustomersSearch(e.target.value)}
-                      placeholder="Search clients by name or phone..."
+                      placeholder="Search by name or phone..."
                       className="w-full pl-9 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-cyan-500 text-slate-105 placeholder-slate-550 transition font-bold"
                     />
                   )}
