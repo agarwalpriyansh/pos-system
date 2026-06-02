@@ -83,7 +83,7 @@ export default function PosView({
                 key={cat}
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4.5 py-2 rounded-full text-sm font-extrabold whitespace-nowrap active:scale-95 transition duration-150 ${
+                className={`px-5 py-2 rounded-full text-sm font-extrabold whitespace-nowrap active:scale-95 transition duration-150 ${
                   selectedCategory === cat
                     ? adminMode ? 'bg-indigo-500 text-slate-950 font-black' : 'bg-emerald-500 text-slate-950 font-black'
                     : 'bg-slate-900 hover:bg-slate-800 text-slate-400'
@@ -136,7 +136,7 @@ export default function PosView({
                       addToCart(product, selectedWeight);
                     }
                   }}
-                  className={`group relative flex flex-col justify-between p-4.5 rounded-2xl border transition duration-200 cursor-pointer select-none bg-slate-900/40 hover:bg-slate-900/80 active:scale-98 ${
+                  className={`group relative flex flex-col justify-between p-5 rounded-2xl border transition duration-200 cursor-pointer select-none bg-slate-900/40 hover:bg-slate-900/80 active:scale-98 ${
                     adminMode 
                       ? isBeingEdited 
                         ? 'border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-950/15' 

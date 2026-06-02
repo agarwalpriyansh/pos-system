@@ -113,30 +113,30 @@ export default function SuperAdminPortal({
                   <tbody className="divide-y divide-slate-850 text-xs sm:text-sm font-semibold">
                     {superAdminShops.map(s => (
                       <tr key={s.shopId} className="hover:bg-slate-900/30 transition duration-150">
-                        <td className="py-4.5 px-4">
+                        <td className="py-4 px-4">
                           <div className="font-bold text-slate-200 text-sm sm:text-base">{s.name}</div>
                           <div className="text-xs text-slate-500 font-medium mt-0.5">{s.description || 'No description'}</div>
                         </td>
-                        <td className="py-4.5 px-4 font-mono font-bold text-indigo-400">{s.shopId}</td>
-                        <td className="py-4.5 px-4">
+                        <td className="py-4 px-4 font-mono font-bold text-indigo-400">{s.shopId}</td>
+                        <td className="py-4 px-4">
                           <div className="text-slate-200 font-bold">{s.owner?.name || 'N/A'}</div>
                           <div className="text-xs text-slate-500 font-mono mt-0.5">{s.owner?.email || 'N/A'}</div>
                         </td>
-                        <td className="py-4.5 px-4 text-slate-350">
+                        <td className="py-4 px-4 text-slate-350">
                           <div className="font-bold">{s.contact || <span className="text-slate-600 font-medium italic">None</span>}</div>
                         </td>
-                        <td className="py-4.5 px-4 text-slate-450 font-bold">
+                        <td className="py-4 px-4 text-slate-450 font-bold">
                           {new Date(s.createdAt).toLocaleDateString('en-IN', {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric'
                           })}
                         </td>
-                        <td className="py-4.5 px-4 text-center">
+                        <td className="py-4 px-4 text-center">
                           <button
                             type="button"
                             onClick={() => handleToggleShopStatus(s.shopId, s.isActive)}
-                            className={`px-4.5 py-1.5 rounded-xl text-xs font-extrabold uppercase transition active:scale-95 border ${
+                            className={`px-5 py-1.5 rounded-xl text-xs font-extrabold uppercase transition active:scale-95 border ${
                               s.isActive
                                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-rose-500/15 hover:text-rose-400 hover:border-rose-500/30'
                                 : 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-emerald-500/15 hover:text-emerald-400 hover:border-emerald-500/30'
