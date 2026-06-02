@@ -426,8 +426,22 @@ func formatWhatsAppItems(summary string) string {
 			name = rest
 			price = ""
 		}
+
+		// Calculate total cost for the customer
+		qtyStr := strings.TrimSuffix(qty, "x")
+		qtyVal, err1 := strconv.ParseFloat(qtyStr, 64)
+
+		priceStr := price
+		priceStr = strings.ReplaceAll(priceStr, "₹", "")
+		priceStr = strings.ReplaceAll(priceStr, " ", "")
+		priceVal, err2 := strconv.ParseFloat(priceStr, 64)
+
+		totalStr := price
+		if err1 == nil && err2 == nil {
+			totalStr = fmt.Sprintf("₹%.2f", qtyVal * priceVal)
+		}
 		
-		rows.WriteString(fmt.Sprintf("*%s*                                   *%s*\n%s @ %s\n\n", name, price, qty, price))
+		rows.WriteString(fmt.Sprintf("*%s*                                   *%s*\n%s @ %s\n\n", name, totalStr, qty, price))
 	}
 	return strings.TrimSpace(rows.String())
 }
@@ -444,7 +458,7 @@ func sendEmailMessage(cfg Config, task QueueTask) bool {
     <title>DS Dryfruits Invoice</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; -webkit-font-smoothing: antialiased;">
-    <div style="max-width: 440px; margin: 20px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; padding: 24px;">
+    <div style="max-width: 550px; margin: 20px auto; background-color: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; padding: 24px;">
         
         <!-- Header -->
         <div style="text-align: center; padding-bottom: 16px; border-bottom: 1px dashed #cbd5e1; margin-bottom: 16px;">
@@ -462,7 +476,7 @@ func sendEmailMessage(cfg Config, task QueueTask) bool {
                 </tr>
                 <tr>
                     <td style="color: #64748b; font-weight: 600;">Date & Time:</td>
-                    <td style="text-align: right; font-weight: 700; color: #0f172a;">%s</td>
+                    <td style="text-align: right; font-weight: 700; color: #0f172a; white-space: nowrap;">%s</td>
                 </tr>
                 <tr>
                     <td style="color: #64748b; font-weight: 600;">Payment Method:</td>
@@ -579,6 +593,20 @@ func formatHTMLItems(summary string) string {
 			name = rest
 			price = ""
 		}
+
+		// Calculate total cost for the customer
+		qtyStr := strings.TrimSuffix(qty, "x")
+		qtyVal, err1 := strconv.ParseFloat(qtyStr, 64)
+
+		priceStr := price
+		priceStr = strings.ReplaceAll(priceStr, "₹", "")
+		priceStr = strings.ReplaceAll(priceStr, " ", "")
+		priceVal, err2 := strconv.ParseFloat(priceStr, 64)
+
+		totalStr := price
+		if err1 == nil && err2 == nil {
+			totalStr = fmt.Sprintf("₹%.2f", qtyVal * priceVal)
+		}
 		
 		rows.WriteString(fmt.Sprintf(`
 			<tr style="vertical-align: top;">
@@ -589,7 +617,7 @@ func formatHTMLItems(summary string) string {
 				<td style="text-align: right; padding: 10px 0; font-weight: 800; color: #1e293b; font-family: monospace; font-size: 13px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; vertical-align: middle;">
 					%s
 				</td>
-			</tr>`, name, qty, price, price))
+			</tr>`, name, qty, price, totalStr))
 	}
 	return rows.String()
 }
