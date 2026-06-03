@@ -21,6 +21,9 @@ services:
       dockerfile: Dockerfile
     container_name: production-backend
     restart: always
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     ports:
       - "5000:5000"
     environment:
@@ -44,6 +47,9 @@ services:
       dockerfile: Dockerfile
     container_name: production-go-worker
     restart: always
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     environment:
       - REDIS_ADDR=redis:6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
