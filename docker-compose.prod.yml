@@ -65,6 +65,17 @@ services:
     networks:
       - pos-network
 
+  # 4. Cloudflare Tunnel
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: production-tunnel
+    restart: always
+    command: tunnel --no-autoupdate --url http://backend:5000
+    depends_on:
+      - backend
+    networks:
+      - pos-network
+
 volumes:
   redis-data:
 
