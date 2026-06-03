@@ -50,240 +50,433 @@ export default function AuthScreen({
       }
     }
   }, [googleClientId, authMode]);
+
+  // List of states in India for the dropdown
+  const indianStates = [
+    'Rajasthan', 'Maharashtra', 'Delhi', 'Karnataka', 'Tamil Nadu', 
+    'Gujarat', 'Uttar Pradesh', 'West Bengal', 'Kerala', 'Andhra Pradesh', 
+    'Telangana', 'Punjab', 'Haryana', 'Madhya Pradesh', 'Bihar'
+  ];
+
+  // List of business types for the dropdown
+  const businessTypes = [
+    'Supermarket & Groceries', 'Apparel & Footwear', 'Pharma & Healthcare', 
+    'Electrical & Electronics', 'Lifestyle & Fashion', 'Specialized Retail', 
+    'Multi-Chain operations', 'Other Retail Store'
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6 sm:p-8 font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between p-4 sm:p-6 md:p-8 font-sans selection:bg-orange-500/20 selection:text-orange-600">
+      
+      {/* Top Notification */}
       {notification && (
-        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl bg-emerald-955 text-emerald-305 border border-emerald-500/40">
-          <span className="text-base font-bold">{notification.message}</span>
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl bg-emerald-900 text-emerald-100 border border-emerald-500/30 animate-slideIn">
+          <span className="text-sm sm:text-base font-bold">{notification.message}</span>
         </div>
       )}
 
-      <div className="w-full max-w-lg bg-slate-900/60 border border-slate-850 rounded-3xl p-8 sm:p-10 backdrop-blur-md shadow-2xl flex flex-col gap-6 relative">
-        {onBackToHome && (
-          <button
-            onClick={onBackToHome}
-            className="self-start text-xs font-bold text-slate-400 hover:text-orange-500 transition duration-150 flex items-center gap-1.5"
-          >
-            ← Back to Homepage
-          </button>
-        )}
-        <div className="text-center">
-          <h1 className="text-4xl font-black bg-gradient-to-r from-emerald-400 via-teal-400 to-indigo-400 bg-clip-text text-transparent tracking-tight">
-            SaaS POS Portal
-          </h1>
-          <p className="text-sm text-slate-400 mt-2 font-medium">Premium Multi-Tenant SaaS Billing Platform</p>
+      {/* Top Header Section */}
+      <header className="max-w-7xl w-full mx-auto flex flex-col items-center gap-4 text-center mt-2">
+        <div className="flex items-center gap-3 relative">
+          {onBackToHome && (
+            <button
+              onClick={onBackToHome}
+              className="absolute -left-24 top-2 text-xs font-bold text-slate-500 hover:text-orange-500 transition duration-150 flex items-center gap-1.5"
+            >
+              ← Back
+            </button>
+          )}
+          
+          <div className="flex flex-col items-center select-none">
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none">GOFRUGAL</span>
+            <span className="text-2xl font-black tracking-tight text-slate-900 leading-normal">
+              Retail<span className="text-orange-600">Easy</span>
+            </span>
+          </div>
         </div>
 
-        {authMode === 'google-setup' ? (
-          // Google Register/Setup Business details form
-          <div className="flex flex-col gap-6">
-            <div className="bg-slate-955/80 border border-slate-800/80 p-4 rounded-2xl space-y-2">
-              <h2 className="text-sm font-extrabold text-emerald-450 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
-                Google Account Authenticated
-              </h2>
-              <div className="text-xs text-slate-300 font-medium space-y-1">
-                <p>Name: <span className="text-slate-100 font-semibold">{googleUserPayload?.name}</span></p>
-                <p>Email: <span className="text-slate-100 font-semibold">{googleUserPayload?.email}</span></p>
-              </div>
-              <p className="text-xs text-slate-500 italic pt-1">
-                Configure your business details below to finalize your SaaS tenant shop.
-              </p>
-            </div>
+        <div className="space-y-1">
+          <p className="text-slate-600 font-bold text-sm sm:text-base">
+            Your business should make you richer and happier
+          </p>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+            A comprehensive ERP system - Try Free
+          </h2>
+        </div>
+      </header>
 
-            <form onSubmit={handleGoogleRegisterSubmit} className="flex flex-col gap-5">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase pl-1">Business Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={authShopName}
-                  onChange={(e) => setAuthShopName(e.target.value)}
-                  placeholder="e.g. Agarwal Stores"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-650 transition"
-                />
+      {/* Split Cards Grid */}
+      <main className="max-w-5xl w-full mx-auto grid md:grid-cols-2 gap-8 my-8 items-stretch">
+        
+        {/* Left Form Card */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-100/70 border border-slate-100/80 flex flex-col gap-6 justify-between">
+          
+          {authMode === 'google-setup' ? (
+            // Google OAuth setup profile
+            <div className="space-y-4">
+              <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl space-y-1.5 text-left">
+                <h3 className="text-xs font-extrabold text-emerald-800 flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  Google Login Authenticated
+                </h3>
+                <div className="text-xs text-slate-600 font-medium leading-relaxed">
+                  <p>Account Name: <span className="text-slate-900 font-bold">{googleUserPayload?.name}</span></p>
+                  <p>Email: <span className="text-slate-900 font-bold">{googleUserPayload?.email}</span></p>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase pl-1">Description</label>
-                  <input
-                    type="text"
+              <form onSubmit={handleGoogleRegisterSubmit} className="space-y-4 text-left">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Business Type</label>
+                  <select 
                     value={authShopDesc}
                     onChange={(e) => setAuthShopDesc(e.target.value)}
-                    placeholder="e.g. Dry fruits"
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-650 transition"
-                  />
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 focus:bg-white text-slate-800 transition"
+                  >
+                    {businessTypes.map((type, i) => (
+                      <option key={i} value={type}>{type}</option>
+                    ))}
+                  </select>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-400 uppercase pl-1">Store Contact</label>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Business Name *</label>
                   <input
                     type="text"
-                    value={authShopContact}
-                    onChange={(e) => setAuthShopContact(e.target.value)}
-                    placeholder="e.g. +91 9876543210"
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-650 transition"
+                    required
+                    value={authShopName}
+                    onChange={(e) => setAuthShopName(e.target.value)}
+                    placeholder="e.g. Priyansh General Stores"
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 focus:bg-white text-slate-800 transition"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase pl-1">Owner Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={authName}
-                  onChange={(e) => setAuthName(e.target.value)}
-                  placeholder="e.g. Priyansh Agarwal"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-650 transition"
-                />
-              </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Store Contact (Phone) *</label>
+                  <div className="flex gap-2">
+                    <div className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500 select-none">
+                      🇮🇳 +91
+                    </div>
+                    <input
+                      type="tel"
+                      required
+                      value={authShopContact}
+                      onChange={(e) => setAuthShopContact(e.target.value)}
+                      placeholder="81234 56789"
+                      className="flex-grow px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 focus:bg-white text-slate-800 transition"
+                    />
+                  </div>
+                </div>
 
-              <div className="flex gap-3 mt-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Owner Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={authName}
+                    onChange={(e) => setAuthName(e.target.value)}
+                    placeholder="e.g. Priyansh Agarwal"
+                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 focus:bg-white text-slate-800 transition"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setAuthMode('login')}
+                    className="flex-1 py-3 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-xs uppercase tracking-wider transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-extrabold rounded-xl text-xs uppercase tracking-widest shadow-md transition disabled:opacity-50"
+                  >
+                    {loading ? 'Launching...' : '🚀 Launch ERP'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            // Tabs toggle: Try Free vs Sign In
+            <div className="flex flex-col gap-5">
+              <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/50">
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('register')}
+                  className={`flex-1 py-2.5 text-xs font-extrabold rounded-lg transition duration-150 uppercase tracking-wider ${
+                    authMode === 'register' ? 'bg-white text-orange-600 shadow-sm font-black' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Try it for free
+                </button>
                 <button
                   type="button"
                   onClick={() => setAuthMode('login')}
-                  className="flex-1 py-3.5 bg-slate-955 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 text-xs sm:text-sm uppercase tracking-wider font-extrabold rounded-xl transition duration-150"
+                  className={`flex-1 py-2.5 text-xs font-extrabold rounded-lg transition duration-150 uppercase tracking-wider ${
+                    authMode === 'login' ? 'bg-white text-orange-600 shadow-sm font-black' : 'text-slate-500 hover:text-slate-800'
+                  }`}
                 >
-                  Cancel
+                  Sign In
                 </button>
+              </div>
+
+              {/* Core Forms */}
+              <form onSubmit={handleAuthSubmit} className="space-y-4 text-left">
+                {authMode === 'register' ? (
+                  // TRY FOR FREE REGISTRATION FORM
+                  <>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Select your business</label>
+                      <select 
+                        value={authShopDesc}
+                        onChange={(e) => setAuthShopDesc(e.target.value)}
+                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 focus:bg-white text-slate-800 transition"
+                      >
+                        <option value="">Choose Format...</option>
+                        {businessTypes.map((type, i) => (
+                          <option key={i} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Business name</label>
+                      <input
+                        type="text"
+                        required
+                        value={authShopName}
+                        onChange={(e) => setAuthShopName(e.target.value)}
+                        placeholder="e.g. Agarwal Supermarket"
+                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Owner Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={authName}
+                        onChange={(e) => setAuthName(e.target.value)}
+                        placeholder="e.g. Priyansh Agarwal"
+                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Email</label>
+                      <input
+                        type="email"
+                        required
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        placeholder="merchant@retaileasy.com"
+                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Phone number *</label>
+                      <div className="flex gap-2">
+                        <select className="px-2 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none">
+                          <option>🇮🇳 +91</option>
+                        </select>
+                        <input
+                          type="tel"
+                          required
+                          value={authShopContact}
+                          onChange={(e) => setAuthShopContact(e.target.value)}
+                          placeholder="81234 56789"
+                          className="flex-grow px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Password *</label>
+                      <input
+                        type="password"
+                        required
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        placeholder="Choose security password..."
+                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">State</label>
+                      <select className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition">
+                        {indianStates.map((state, i) => (
+                          <option key={i} value={state}>{state}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 py-1">
+                      <input 
+                        type="checkbox" 
+                        required 
+                        id="terms" 
+                        className="mt-1 h-4 w-4 text-orange-600 focus:ring-orange-500 border-slate-300 rounded" 
+                      />
+                      <label htmlFor="terms" className="text-[11px] text-slate-500 leading-tight">
+                        I agree to the <span className="text-orange-600 font-bold hover:underline cursor-pointer">Terms of Service</span> and <span className="text-orange-600 font-bold hover:underline cursor-pointer">Privacy Policy</span>.
+                      </label>
+                    </div>
+                  </>
+                ) : (
+                  // LOGIN SIGN IN FORM
+                  <>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Email Address *</label>
+                      <input
+                        type="email"
+                        required
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        placeholder="merchant@retaileasy.com"
+                        className="w-full px-3 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Password *</label>
+                      <input
+                        type="password"
+                        required
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full px-3 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Submit Action Button */}
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-955 font-extrabold text-xs sm:text-sm uppercase tracking-widest rounded-xl transition duration-155 shadow-xl shadow-emerald-500/10 disabled:opacity-40"
+                  className="w-full py-3 bg-[#e30613] hover:bg-[#c20510] text-white font-extrabold text-sm uppercase tracking-widest rounded-xl transition duration-150 shadow-md hover:shadow-lg active:scale-95 transform mt-2"
                 >
-                  {loading ? 'Setting up...' : '🚀 Launch Shop'}
+                  {loading ? 'Processing...' : authMode === 'register' ? 'Try it for free' : 'Sign In'}
                 </button>
+              </form>
+
+              <div className="relative flex items-center justify-center my-1.5">
+                <div className="absolute w-full border-t border-slate-150"></div>
+                <span className="relative px-3 bg-white text-[10px] uppercase font-bold tracking-wider text-slate-400">Or continue with</span>
               </div>
-            </form>
+
+              {/* Google Actions */}
+              <div className="flex flex-col items-center gap-3">
+                {googleClientId && !googleClientId.startsWith('your-google-client-id-here') ? (
+                  <div id="google-signin-btn" className="w-full flex justify-center py-0.5 min-h-[40px]"></div>
+                ) : (
+                  <button 
+                    onClick={handleGoogleOAuthSimulate}
+                    className="w-full py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-slate-700 text-xs transition flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.137 4.114-3.466 0-6.277-2.85-6.277-6.36 0-3.51 2.811-6.36 6.277-6.36 1.497 0 2.87.525 3.957 1.4l3.14-3.14C19.012 2.21 15.858 1 12.24 1 5.966 1 1 5.97 1 12.04c0 6.07 4.967 11.04 11.24 11.04 6.787 0 11.396-4.76 11.396-11.59 0-.496-.046-.975-.12-1.44H12.24z"/>
+                    </svg>
+                    Simulate Google Login
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Testimonial Card */}
+        <div className="bg-blue-50/20 border border-blue-100/50 rounded-3xl p-8 sm:p-10 flex flex-col justify-between items-center text-center shadow-sm relative overflow-hidden">
+          
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-100/30 rounded-full blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-orange-100/20 rounded-full blur-2xl"></div>
+
+          {/* Testimonial Logo (Kamlas) */}
+          <div className="flex flex-col items-center">
+            <span className="text-[28px] leading-none select-none">🏬</span>
+            <div className="font-serif italic text-red-700 font-extrabold text-xl leading-none mt-1 tracking-tight flex items-center gap-1">
+              Kamla's
+              <span className="font-sans text-[8px] uppercase tracking-wider font-extrabold bg-red-700 text-white px-1.5 py-0.5 rounded leading-none">
+                HYPERMART
+              </span>
+            </div>
           </div>
-        ) : (
-          // Regular Sign In / Register Shop Forms
-          <>
-            <div className="flex bg-slate-950 p-1.5 rounded-xl border border-slate-850">
-              <button
-                type="button"
-                onClick={() => setAuthMode('login')}
-                className={`flex-1 py-3 text-sm font-extrabold rounded-lg transition duration-150 ${
-                  authMode === 'login' ? 'bg-emerald-500 text-slate-955 font-black' : 'text-slate-450 hover:text-slate-200'
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => setAuthMode('register')}
-                className={`flex-1 py-3 text-sm font-extrabold rounded-lg transition duration-150 ${
-                  authMode === 'register' ? 'bg-emerald-500 text-slate-955 font-black' : 'text-slate-450 hover:text-slate-200'
-                }`}
-              >
-                Register Business
-              </button>
+
+          {/* Customer Quote */}
+          <div className="my-6 relative">
+            <span className="absolute -top-6 -left-4 text-4xl text-blue-200/80 font-serif">“</span>
+            <p className="text-slate-600 text-sm leading-relaxed font-medium">
+              A POS software needs to give a positive impact on your business - with increase in customer base and margins. RetailEasy did exactly that for us, which all our earlier software didn't. RetailEasy has given us 100% accuracy in stock across all our departments and floors, we never have to redo stock taking. Integrated accounts has made our life very easy and peaceful.
+            </p>
+            <span className="absolute -bottom-10 -right-4 text-4xl text-blue-200/80 font-serif">”</span>
+          </div>
+
+          {/* Customer Profile info */}
+          <div className="mt-4">
+            <h4 className="font-bold text-slate-800 text-sm leading-normal">
+              Mr. Ajith Gopinath
+            </h4>
+            <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-0.5">
+              Proprietor, Kamlas Supermarket
+            </p>
+          </div>
+
+        </div>
+      </main>
+
+      {/* Footer Metrics Credentials */}
+      <footer className="max-w-5xl w-full mx-auto border-t border-slate-200/80 pt-6 mt-2">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-slate-600 font-medium text-[11px] sm:text-xs">
+          
+          <div className="flex items-center justify-center md:justify-start gap-2 bg-white/40 md:bg-transparent p-2 md:p-0 rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-none">
+            <span className="text-lg">🛡️</span>
+            <div className="text-left leading-tight">
+              <span className="font-bold text-slate-900 block text-xs sm:text-sm">20+ Years</span>
+              of specialization
             </div>
+          </div>
 
-            <form onSubmit={handleAuthSubmit} className="flex flex-col gap-5">
-              {authMode === 'register' && (
-                <>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 uppercase pl-1">Business Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={authShopName}
-                      onChange={(e) => setAuthShopName(e.target.value)}
-                      placeholder="e.g. Agarwal Stores"
-                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-650 transition"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 uppercase pl-1">Description</label>
-                      <input
-                        type="text"
-                        value={authShopDesc}
-                        onChange={(e) => setAuthShopDesc(e.target.value)}
-                        placeholder="e.g. Dry fruits"
-                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-650 transition"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-400 uppercase pl-1">Store Contact</label>
-                      <input
-                        type="text"
-                        value={authShopContact}
-                        onChange={(e) => setAuthShopContact(e.target.value)}
-                        placeholder="e.g. +91 9876543210"
-                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-650 transition"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-400 uppercase pl-1">Owner Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={authName}
-                      onChange={(e) => setAuthName(e.target.value)}
-                      placeholder="e.g. Priyansh Agarwal"
-                      className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-650 transition"
-                    />
-                  </div>
-                </>
-              )}
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase pl-1">Email Address *</label>
-                <input
-                  type="email"
-                  required
-                  value={authEmail}
-                  onChange={(e) => setAuthEmail(e.target.value)}
-                  placeholder="merchant@example.com"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-650 transition"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase pl-1">Password *</label>
-                <input
-                  type="password"
-                  required
-                  value={authPassword}
-                  onChange={(e) => setAuthPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-emerald-500 text-slate-100 placeholder-slate-650 transition"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-955 font-extrabold text-sm sm:text-base uppercase tracking-widest rounded-xl transition duration-155 shadow-xl shadow-emerald-500/10 disabled:opacity-40"
-              >
-                {loading ? 'Processing...' : authMode === 'login' ? '🔐 Sign In' : '🚀 Setup Shop Tenant'}
-              </button>
-            </form>
-
-            <div className="relative flex items-center justify-center my-2">
-              <div className="absolute w-full border-t border-slate-800"></div>
-              <span className="relative px-4 bg-slate-900 text-xs uppercase font-extrabold tracking-wider text-slate-500">Or Continue With</span>
+          <div className="flex items-center justify-center md:justify-start gap-2 bg-white/40 md:bg-transparent p-2 md:p-0 rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-none">
+            <span className="text-lg">👥</span>
+            <div className="text-left leading-tight">
+              <span className="font-bold text-slate-900 block text-xs sm:text-sm">30,000+</span>
+              customers global
             </div>
+          </div>
 
-            {/* Real Google Sign-In SDK button container or warning */}
-            <div className="w-full flex flex-col items-center gap-3">
-              {googleClientId && !googleClientId.startsWith('your-google-client-id-here') ? (
-                <div id="google-signin-btn" className="w-full flex justify-center py-0.5 min-h-[40px]"></div>
-              ) : (
-                <div className="w-full py-3 bg-slate-950/40 border border-slate-800/80 rounded-xl text-center text-xs font-bold text-slate-500 select-none cursor-not-allowed">
-                  🔒 Real Google Sign-In Pending Server Config
-                </div>
-              )}
+          <div className="flex items-center justify-center md:justify-start gap-2 bg-white/40 md:bg-transparent p-2 md:p-0 rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-none">
+            <span className="text-lg">💼</span>
+            <div className="text-left leading-tight">
+              <span className="font-bold text-slate-900 block text-xs sm:text-sm">70+</span>
+              business verticals
             </div>
-          </>
-        )}
-      </div>
+          </div>
+
+          <div className="flex items-center justify-center md:justify-start gap-2 bg-white/40 md:bg-transparent p-2 md:p-0 rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-none">
+            <span className="text-lg">🌐</span>
+            <div className="text-left leading-tight">
+              <span className="font-bold text-slate-900 block text-xs sm:text-sm">75+</span>
+              countries served
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center md:justify-start gap-2 bg-white/40 md:bg-transparent p-2 md:p-0 rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-none col-span-2 md:col-span-1">
+            <span className="text-lg">🤝</span>
+            <div className="text-left leading-tight">
+              <span className="font-bold text-slate-900 block text-xs sm:text-sm">600+ Staff</span>
+              strong field presence
+            </div>
+          </div>
+
+        </div>
+      </footer>
+
     </div>
   );
 }

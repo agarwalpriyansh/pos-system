@@ -31,12 +31,38 @@ const getLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-export default function BillingInterface({ onBackToHome }) {
+export default function BillingInterface({ currentHash }) {
+  const onBackToHome = () => {
+    window.location.hash = '#/';
+  };
   // Authentication & Session State
   const [token, setToken] = useState(localStorage.getItem('pos_saas_token') || '');
   const [user, setUser] = useState(null);
   const [shop, setShop] = useState(null);
-  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register' | 'google-setup'
+
+  // Derive authMode and currentView from browser hash
+  const authMode = currentHash === '#/register' ? 'register' : currentHash === '#/google-setup' ? 'google-setup' : 'login';
+  const setAuthMode = (mode) => {
+    window.location.hash = `#/${mode}`;
+  };
+
+  const currentView = currentHash === '#/dashboard' ? 'dashboard' : currentHash === '#/admin' ? 'admin' : currentHash === '#/settings' ? 'settings' : 'pos';
+  const setCurrentView = (view) => {
+    window.location.hash = `#/${view}`;
+  };
+
+  // Protect internal routes and automatically redirect based on session token
+  useEffect(() => {
+    if (!token) {
+      if (currentHash !== '#/login' && currentHash !== '#/register' && currentHash !== '#/google-setup') {
+        window.location.hash = '#/login';
+      }
+    } else {
+      if (currentHash === '#/login' || currentHash === '#/register') {
+        window.location.hash = '#/pos';
+      }
+    }
+  }, [token, currentHash]);
   
   // Auth Form Inputs
   const [authEmail, setAuthEmail] = useState('');
@@ -96,9 +122,6 @@ export default function BillingInterface({ onBackToHome }) {
     setEnteringCustomFor(prev => ({ ...prev, [product._id]: false }));
     triggerNotification('info', `Selected weight choice: ${formattedWeight}`);
   };
-
-  // View States
-  const [currentView, setCurrentView] = useState('pos'); // 'pos', 'admin', 'dashboard', 'settings'
   const adminMode = currentView === 'admin';
   const [editingProduct, setEditingProduct] = useState(null); // null = "Add", object = "Edit"
   

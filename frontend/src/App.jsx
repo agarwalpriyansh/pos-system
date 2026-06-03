@@ -1,15 +1,30 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import HomePage from './components/HomePage'
 import BillingInterface from './components/BillingInterface'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home')
+  const [currentHash, setCurrentHash] = useState(window.location.hash || '#/')
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setCurrentHash(window.location.hash || '#/')
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    
+    if (!window.location.hash) {
+      window.location.hash = '#/'
+    }
+
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
+
+  const showHome = currentHash === '#/' || currentHash === '#/home' || currentHash === ''
 
   return (
-    currentPage === 'home' ? (
-      <HomePage onStartBilling={() => setCurrentPage('app')} />
+    showHome ? (
+      <HomePage />
     ) : (
-      <BillingInterface onBackToHome={() => setCurrentPage('home')} />
+      <BillingInterface currentHash={currentHash} />
     )
   )
 }

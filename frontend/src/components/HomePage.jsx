@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function HomePage({ onStartBilling }) {
+export default function HomePage() {
   // Navigation active state based on scroll
   const [activeNav, setActiveNav] = useState('hero');
   // Mobile navbar open state
@@ -11,6 +11,13 @@ export default function HomePage({ onStartBilling }) {
   const [openFaq, setOpenFaq] = useState(null);
   // Check if token exists to change CTA text
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const onStartBilling = () => {
+    window.location.hash = isLoggedIn ? '#/pos' : '#/register';
+  };
+  const onStartLogin = () => {
+    window.location.hash = isLoggedIn ? '#/pos' : '#/login';
+  };
 
   useEffect(() => {
     setIsLoggedIn(!!localStorage.getItem('pos_saas_token'));
@@ -410,7 +417,7 @@ export default function HomePage({ onStartBilling }) {
           {/* Nav CTAs */}
           <div className="hidden md:flex items-center gap-4">
             <button 
-              onClick={onStartBilling} 
+              onClick={onStartLogin} 
               className="text-slate-700 hover:text-slate-950 font-bold text-sm transition duration-150"
             >
               {isLoggedIn ? 'Go to App' : 'Sign In'}
@@ -477,7 +484,7 @@ export default function HomePage({ onStartBilling }) {
             <hr className="border-slate-100 my-2" />
             <div className="flex flex-col gap-3 pt-2">
               <button 
-                onClick={onStartBilling} 
+                onClick={onStartLogin} 
                 className="w-full py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-center text-sm transition"
               >
                 {isLoggedIn ? 'Launch POS Console' : 'Sign In'}
