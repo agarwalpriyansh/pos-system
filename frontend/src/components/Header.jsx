@@ -8,7 +8,8 @@ export default function Header({
   handleLogout,
   showMobileCart,
   setShowMobileCart,
-  cart
+  cart,
+  onBackToHome
 }) {
   return (
     <header className="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 bg-slate-900/60 border border-slate-800 p-5 sm:p-6 rounded-2xl backdrop-blur-md">
@@ -27,6 +28,15 @@ export default function Header({
       </div>
 
       <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+        {onBackToHome && (
+          <button
+            type="button"
+            onClick={onBackToHome}
+            className="flex-1 sm:flex-initial text-sm px-5 py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 font-extrabold rounded-xl transition duration-155 active:scale-95"
+          >
+            🏠 Home
+          </button>
+        )}
         {/* Navigation Tab Toggles */}
         <button
           type="button"

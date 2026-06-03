@@ -22,7 +22,8 @@ export default function AuthScreen({
   handleGoogleLogin,
   handleGoogleRegisterSubmit,
   googleUserPayload,
-  notification
+  notification,
+  onBackToHome
 }) {
   React.useEffect(() => {
     if (typeof window !== 'undefined' && window.google?.accounts?.id && googleClientId) {
@@ -57,7 +58,15 @@ export default function AuthScreen({
         </div>
       )}
 
-      <div className="w-full max-w-lg bg-slate-900/60 border border-slate-800 rounded-3xl p-8 sm:p-10 backdrop-blur-md shadow-2xl flex flex-col gap-8">
+      <div className="w-full max-w-lg bg-slate-900/60 border border-slate-850 rounded-3xl p-8 sm:p-10 backdrop-blur-md shadow-2xl flex flex-col gap-6 relative">
+        {onBackToHome && (
+          <button
+            onClick={onBackToHome}
+            className="self-start text-xs font-bold text-slate-400 hover:text-orange-500 transition duration-150 flex items-center gap-1.5"
+          >
+            ← Back to Homepage
+          </button>
+        )}
         <div className="text-center">
           <h1 className="text-4xl font-black bg-gradient-to-r from-emerald-400 via-teal-400 to-indigo-400 bg-clip-text text-transparent tracking-tight">
             SaaS POS Portal

@@ -31,7 +31,7 @@ const getLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-export default function BillingInterface() {
+export default function BillingInterface({ onBackToHome }) {
   // Authentication & Session State
   const [token, setToken] = useState(localStorage.getItem('pos_saas_token') || '');
   const [user, setUser] = useState(null);
@@ -540,6 +540,9 @@ export default function BillingInterface() {
     setRecentActivity([]);
     setCurrentView('pos');
     triggerNotification('info', 'Logged out cleanly from SaaS portal');
+    if (onBackToHome) {
+      onBackToHome();
+    }
   };
 
   // --- SHOP SETTINGS ACTIONS ---
@@ -896,6 +899,7 @@ export default function BillingInterface() {
         handleGoogleRegisterSubmit={handleGoogleRegisterSubmit}
         googleUserPayload={googleUserPayload}
         notification={notification}
+        onBackToHome={onBackToHome}
       />
     );
   }
@@ -934,6 +938,7 @@ export default function BillingInterface() {
         showMobileCart={showMobileCart}
         setShowMobileCart={setShowMobileCart}
         cart={cart}
+        onBackToHome={onBackToHome}
       />
 
       {/* RENDER VIEWS */}
