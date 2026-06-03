@@ -36,7 +36,7 @@ export default function BillingInterface() {
   const [token, setToken] = useState(localStorage.getItem('pos_saas_token') || '');
   const [user, setUser] = useState(null);
   const [shop, setShop] = useState(null);
-  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register'
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register' | 'google-setup'
   
   // Auth Form Inputs
   const [authEmail, setAuthEmail] = useState('');
@@ -45,6 +45,27 @@ export default function BillingInterface() {
   const [authShopName, setAuthShopName] = useState('');
   const [authShopDesc, setAuthShopDesc] = useState('');
   const [authShopContact, setAuthShopContact] = useState('');
+
+  // Google OAuth Real-login States
+  const [googleClientId, setGoogleClientId] = useState('');
+  const [googleIdToken, setGoogleIdToken] = useState('');
+  const [googleUserPayload, setGoogleUserPayload] = useState(null);
+
+  // Fetch Google client configuration
+  useEffect(() => {
+    const fetchGoogleConfig = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/google-config`);
+        if (res.ok) {
+          const data = await res.json();
+          setGoogleClientId(data.googleClientId);
+        }
+      } catch (err) {
+        console.warn('[Google Config Fetch Error]:', err);
+      }
+    };
+    fetchGoogleConfig();
+  }, []);
 
   // Catalog & POS Core State
   const [products, setProducts] = useState([]);
@@ -405,6 +426,101 @@ export default function BillingInterface() {
         triggerNotification('success', 'Logged in successfully via simulated Google OAuth!');
       } else {
         throw new Error(data.error || 'Google OAuth failed');
+      }
+    } catch (err) {
+      triggerNotification('error', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Real Google Sign-in Handler
+  const handleGoogleLogin = async (idToken) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        if (data.isNewUser) {
+          // New user registration flow
+          setGoogleIdToken(idToken);
+          setGoogleUserPayload({
+            email: data.email,
+            name: data.name,
+            googleId: data.googleId
+          });
+          setAuthName(data.name);
+          setAuthMode('google-setup');
+          triggerNotification('info', 'Authenticated with Google. Please set up your store details.');
+        } else {
+          // Existing user logged in
+          localStorage.setItem('pos_saas_token', data.token);
+          setToken(data.token);
+          setUser(data.user);
+          setShop(data.shop);
+          triggerNotification('success', 'Logged in successfully via Google!');
+        }
+      } else {
+        throw new Error(data.error || 'Google login failed');
+      }
+    } catch (err) {
+      triggerNotification('error', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Complete Google Registration with Shop details
+  const handleGoogleRegisterSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!googleIdToken) {
+      triggerNotification('error', 'Google session expired. Please sign in again.');
+      return;
+    }
+    if (!authShopName || !authName) {
+      triggerNotification('error', 'Shop Name and Owner Name are required');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/google-register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          idToken: googleIdToken,
+          shopName: authShopName,
+          shopDescription: authShopDesc,
+          shopContact: authShopContact,
+          ownerName: authName
+        })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem('pos_saas_token', data.token);
+        setToken(data.token);
+        setUser(data.user);
+        setShop(data.shop);
+        triggerNotification('success', 'Business registered successfully via Google!');
+        
+        // Clear all fields
+        setGoogleIdToken('');
+        setGoogleUserPayload(null);
+        setAuthMode('login');
+        setAuthEmail('');
+        setAuthPassword('');
+        setAuthName('');
+        setAuthShopName('');
+        setAuthShopDesc('');
+        setAuthShopContact('');
+      } else {
+        throw new Error(data.error || 'Google registration failed');
       }
     } catch (err) {
       triggerNotification('error', err.message);
@@ -775,6 +891,10 @@ export default function BillingInterface() {
         loading={loading}
         handleAuthSubmit={handleAuthSubmit}
         handleGoogleOAuthSimulate={handleGoogleOAuthSimulate}
+        googleClientId={googleClientId}
+        handleGoogleLogin={handleGoogleLogin}
+        handleGoogleRegisterSubmit={handleGoogleRegisterSubmit}
+        googleUserPayload={googleUserPayload}
         notification={notification}
       />
     );
