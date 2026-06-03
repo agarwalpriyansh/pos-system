@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # 1. Redis Queue Broker & Distributed Locks
+  redis:
+    image: redis:alpine
+    container_name: production-redis
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "127.0.0.1:6379:6379" # Bind to local loopback to prevent external exposure on EC2
+    volumes:
+      - redis-data:/data
+    networks:
+      - pos-network
+
+  # 2. Node.js Express API Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: production-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGODB_URI=${MONGODB_URI}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_QUEUE_NAME=${REDIS_QUEUE_NAME:-queue:bills}
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+    depends_on:
+      - redis
+    networks:
+      - pos-network
+
+  # 3. Go Background Worker Pool
+  go-worker:
+    build:
+      context: ./go-worker
+      dockerfile: Dockerfile
+    container_name: production-go-worker
+    restart: always
+    environment:
+      - REDIS_ADDR=redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_DB=${REDIS_DB:-0}
+      - REDIS_QUEUE_NAME=${REDIS_QUEUE_NAME:-queue:bills}
+      - WORKER_COUNT=${WORKER_COUNT:-5}
+      - MOCK_WHATSAPP_API=${MOCK_WHATSAPP_API:-true}
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN}
+      - WHATSAPP_PHONE_NUMBER_ID=${WHATSAPP_PHONE_NUMBER_ID}
+      - WHATSAPP_API_URL=${WHATSAPP_API_URL:-https://graph.facebook.com/v25.0}
+      - MOCK_EMAIL_API=${MOCK_EMAIL_API:-false}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+    depends_on:
+      - redis
+    networks:
+      - pos-network
+
+volumes:
+  redis-data:
+
+networks:
+  pos-network:
+    driver: bridge
