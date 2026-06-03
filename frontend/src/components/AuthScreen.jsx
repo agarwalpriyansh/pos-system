@@ -271,17 +271,6 @@ export default function AuthScreen({
                   🔒 Real Google Sign-In Pending Server Config
                 </div>
               )}
-
-              {/* OAuth simulation for fast sandbox logins */}
-              <button
-                type="button"
-                onClick={handleGoogleOAuthSimulate}
-                disabled={loading}
-                className="w-full py-3 bg-slate-950 hover:bg-slate-900 border border-slate-850 hover:border-slate-700 rounded-xl flex items-center justify-center gap-3 transition duration-150 active:scale-98 shadow-md text-sm sm:text-base font-extrabold text-slate-200"
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 border border-slate-800 text-xs text-rose-500 font-extrabold font-mono">G</span>
-                <span>Google Sign-In (Sandbox)</span>
-              </button>
             </div>
           </>
         )}
