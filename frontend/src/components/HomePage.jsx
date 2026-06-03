@@ -501,7 +501,7 @@ export default function HomePage({ onStartBilling }) {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid md:grid-cols-12 gap-12 items-center">
-          <div className="md:col-span-7 space-y-6 text-left">
+          <div className="md:col-span-6 space-y-6 text-left">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 text-orange-700 font-bold text-xs border border-orange-200/50">
               🚀 High Performance POS System
             </span>
@@ -538,73 +538,16 @@ export default function HomePage({ onStartBilling }) {
             </div>
           </div>
 
-          {/* Interactive POS Simulation Mockup */}
-          <div className="md:col-span-5 relative">
-            <div className="absolute inset-0 bg-gradient-to-tr from-orange-400 to-orange-600 rounded-3xl blur-2xl opacity-10 -rotate-3 scale-105"></div>
-            <div className="relative border-4 border-slate-800 rounded-3xl bg-slate-950 p-4 shadow-2xl overflow-hidden min-h-[400px] flex flex-col justify-between">
-              
-              {/* Fake UI Header */}
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                </div>
-                <span className="text-[10px] text-slate-500 tracking-wider uppercase font-bold">RetailEasy Dashboard</span>
-                <div className="w-8 h-3 bg-slate-800 rounded"></div>
-              </div>
-
-              {/* Fake UI Content */}
-              <div className="space-y-4 flex-grow text-left">
-                {/* Sales Chart Card */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-[10px] text-slate-400 font-bold block">Live Sales Analytics</span>
-                    <span className="text-[10px] text-emerald-400 font-bold">↑ 24%</span>
-                  </div>
-                  <div className="flex items-end gap-1.5 h-16 pt-2">
-                    <div className="w-full bg-slate-800 rounded h-[30%]"></div>
-                    <div className="w-full bg-slate-800 rounded h-[50%]"></div>
-                    <div className="w-full bg-slate-800 rounded h-[40%]"></div>
-                    <div className="w-full bg-slate-800 rounded h-[75%]"></div>
-                    <div className="w-full bg-orange-600 rounded h-[95%]"></div>
-                  </div>
-                </div>
-
-                {/* POS Stats summary */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
-                    <span className="text-[9px] text-slate-500 block uppercase font-bold">Net Sales</span>
-                    <span className="text-base font-extrabold text-white">$4,859.20</span>
-                  </div>
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-3">
-                    <span className="text-[9px] text-slate-500 block uppercase font-bold">Transactions</span>
-                    <span className="text-base font-extrabold text-white">182 Orders</span>
-                  </div>
-                </div>
-
-                {/* Stock Warning alert */}
-                <div className="flex items-center gap-3 bg-orange-500/10 border border-orange-500/20 p-2.5 rounded-xl text-xs">
-                  <span className="text-lg">⚠️</span>
-                  <div className="leading-tight">
-                    <span className="font-bold text-orange-400 block text-[10px] uppercase">Low Stock Alert</span>
-                    <span className="text-slate-300 text-[11px]">Organic Milk 1L - 3 units left</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Fake UI Footer CTA */}
-              <div className="border-t border-slate-800 pt-3 mt-3 flex justify-between items-center">
-                <span className="text-[10px] text-slate-400">Current Cashier: Admin</span>
-                <button 
-                  onClick={onStartBilling}
-                  className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold text-[10px] transition"
-                >
-                  Open Billing Interface →
-                </button>
-              </div>
-
-            </div>
+          {/* 3D Tilted Dashboard Presentation Mockup */}
+          <div className="md:col-span-6 relative [perspective:1200px] flex justify-center items-center mt-8 md:mt-0">
+            {/* Soft background glow */}
+            <div className="absolute -inset-4 bg-gradient-to-tr from-orange-400 to-orange-600 rounded-[2rem] blur-3xl opacity-15 -rotate-3 scale-105 z-0"></div>
+            
+            <img 
+              src="/hero-dashboard.png" 
+              alt="RetailEasy POS Dashboard Presentation" 
+              className="relative z-10 w-full max-w-lg md:max-w-xl [transform:rotateY(-20deg)_rotateX(10deg)_rotateZ(-2deg)] shadow-2xl rounded-2xl border border-slate-100/50 bg-white transition-all duration-700 hover:[transform:rotateY(-8deg)_rotateX(4deg)_rotateZ(-1deg)] hover:shadow-orange-500/20"
+            />
           </div>
         </div>
       </section>
