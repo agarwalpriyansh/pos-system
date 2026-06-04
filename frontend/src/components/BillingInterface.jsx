@@ -922,10 +922,16 @@ export default function BillingInterface({ currentPath }) {
 
   // CORE SAAS APP CONTENT (CASHIER / MERCHANT SUITE)
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 sm:p-6 md:p-8 flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 sm:p-6 md:p-8 flex flex-col">
       {/* Dynamic Toast Notification */}
       {notification && (
-        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl bg-emerald-950 text-emerald-305 border border-emerald-500/30 animate-slideIn">
+        <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border backdrop-blur-md animate-slideIn ${
+          notification.type === 'error'
+            ? 'bg-rose-50 text-rose-800 border-rose-250'
+            : notification.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-250'
+              : 'bg-blue-50 text-blue-800 border-blue-250'
+        }`}>
           <span className="text-sm sm:text-base font-bold">{notification.message}</span>
         </div>
       )}

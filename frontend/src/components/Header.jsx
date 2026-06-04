@@ -12,17 +12,17 @@ export default function Header({
   onBackToHome
 }) {
   return (
-    <header className="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 bg-slate-900/60 border border-slate-800 p-5 sm:p-6 rounded-2xl backdrop-blur-md">
+    <header className="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 bg-white border border-slate-200/80 p-5 sm:p-6 rounded-2xl shadow-sm">
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-teal-400 to-indigo-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
             {shop?.name || 'SaaS POS'}
           </h1>
-          <span className="px-3 py-1 rounded-full text-xs uppercase tracking-wider font-extrabold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span className="px-3 py-1 rounded-full text-xs uppercase tracking-wider font-extrabold bg-orange-50 text-orange-600 border border-orange-200/50">
             {shop?.shopId}
           </span>
         </div>
-        <p className="text-sm sm:text-base text-slate-400 mt-1 font-medium">
+        <p className="text-sm sm:text-base text-slate-500 mt-1 font-medium">
           {shop?.description || 'A Premium Multi-Tenant POS SaaS Instance'}
         </p>
       </div>
@@ -32,7 +32,7 @@ export default function Header({
           <button
             type="button"
             onClick={onBackToHome}
-            className="flex-1 sm:flex-initial text-sm px-5 py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 font-extrabold rounded-xl transition duration-155 active:scale-95"
+            className="flex-1 sm:flex-initial text-sm px-5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-extrabold rounded-xl transition duration-155 active:scale-95"
           >
             🏠 Home
           </button>
@@ -46,8 +46,8 @@ export default function Header({
           }}
           className={`flex-1 sm:flex-initial text-sm px-5 py-2.5 font-extrabold rounded-xl transition duration-155 active:scale-95 border ${
             currentView === 'pos'
-              ? 'bg-emerald-600 border-emerald-500 text-slate-955 shadow-md shadow-emerald-500/10 font-black'
-              : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+              ? 'bg-orange-600 border-orange-500 text-white shadow-md shadow-orange-500/10 font-black'
+              : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
           }`}
         >
           🛒 Cashier POS
@@ -61,8 +61,8 @@ export default function Header({
           }}
           className={`flex-1 sm:flex-initial text-sm px-5 py-2.5 font-extrabold rounded-xl transition duration-155 active:scale-95 border ${
             currentView === 'dashboard'
-              ? 'bg-cyan-600 border-cyan-500 text-slate-100 shadow-md shadow-cyan-500/10 font-black'
-              : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+              ? 'bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-500/10 font-black'
+              : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
           }`}
         >
           📊 Analytics & Sales
@@ -76,8 +76,8 @@ export default function Header({
           }}
           className={`flex-1 sm:flex-initial text-sm px-5 py-2.5 font-extrabold rounded-xl transition duration-155 active:scale-95 border ${
             currentView === 'admin'
-              ? 'bg-indigo-600 border-indigo-500 text-slate-100 shadow-md shadow-indigo-500/10 font-black'
-              : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+              ? 'bg-indigo-600 border-indigo-500 text-white shadow-md shadow-indigo-500/10 font-black'
+              : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
           }`}
         >
           🛠️ Catalog Manager
@@ -91,8 +91,8 @@ export default function Header({
           }}
           className={`flex-1 sm:flex-initial text-sm px-5 py-2.5 font-extrabold rounded-xl transition duration-155 active:scale-95 border ${
             currentView === 'settings'
-              ? 'bg-indigo-600 border-indigo-500 text-slate-100 shadow-md shadow-indigo-500/10 font-black'
-              : 'bg-slate-950 hover:bg-slate-900 border-slate-800 text-slate-400'
+              ? 'bg-purple-600 border-purple-500 text-white shadow-md shadow-purple-500/10 font-black'
+              : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
           }`}
         >
           ⚙️ Store Settings
@@ -102,7 +102,7 @@ export default function Header({
         <button
           type="button"
           onClick={handleLogout}
-          className="px-4 py-2.5 text-sm font-extrabold rounded-xl border border-rose-500/25 bg-rose-950/20 hover:bg-rose-900/30 text-rose-455 transition duration-150 active:scale-95"
+          className="px-4 py-2.5 text-sm font-extrabold rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 transition duration-150 active:scale-95"
         >
           Logout
         </button>
@@ -112,7 +112,7 @@ export default function Header({
           <button
             type="button"
             onClick={() => setShowMobileCart(!showMobileCart)}
-            className="md:hidden flex-1 flex items-center justify-center gap-2 text-sm px-5 py-2.5 bg-emerald-500 text-slate-950 font-bold rounded-xl active:scale-95 transition"
+            className="md:hidden flex-1 flex items-center justify-center gap-2 text-sm px-5 py-2.5 bg-orange-600 text-white font-bold rounded-xl active:scale-95 transition"
           >
             🛒 Cart ({cart.reduce((sum, item) => sum + item.quantity, 0)})
           </button>
