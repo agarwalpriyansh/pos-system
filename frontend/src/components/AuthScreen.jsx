@@ -398,54 +398,6 @@ export default function AuthScreen({
           />
         </div>
       </main>
-
-      {/* Footer Metrics Credentials */}
-      <footer className="max-w-5xl w-full mx-auto border-t border-slate-200/80 pt-6 mt-2">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-slate-600 font-medium text-[11px] sm:text-xs">
-          
-          <div className="flex items-center justify-center md:justify-start gap-2 bg-white/40 md:bg-transparent p-2 md:p-0 rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-none">
-            <span className="text-lg">🛡️</span>
-            <div className="text-left leading-tight">
-              <span className="font-bold text-slate-900 block text-xs sm:text-sm">20+ Years</span>
-              of specialization
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center md:justify-start gap-2 bg-white/40 md:bg-transparent p-2 md:p-0 rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-none">
-            <span className="text-lg">👥</span>
-            <div className="text-left leading-tight">
-              <span className="font-bold text-slate-900 block text-xs sm:text-sm">30,000+</span>
-              customers global
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center md:justify-start gap-2 bg-white/40 md:bg-transparent p-2 md:p-0 rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-none">
-            <span className="text-lg">💼</span>
-            <div className="text-left leading-tight">
-              <span className="font-bold text-slate-900 block text-xs sm:text-sm">70+</span>
-              business verticals
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center md:justify-start gap-2 bg-white/40 md:bg-transparent p-2 md:p-0 rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-none">
-            <span className="text-lg">🌐</span>
-            <div className="text-left leading-tight">
-              <span className="font-bold text-slate-900 block text-xs sm:text-sm">75+</span>
-              countries served
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center md:justify-start gap-2 bg-white/40 md:bg-transparent p-2 md:p-0 rounded-xl border border-slate-100 md:border-0 shadow-sm md:shadow-none col-span-2 md:col-span-1">
-            <span className="text-lg">🤝</span>
-            <div className="text-left leading-tight">
-              <span className="font-bold text-slate-900 block text-xs sm:text-sm">600+ Staff</span>
-              strong field presence
-            </div>
-          </div>
-
-        </div>
-      </footer>
-
     </div>
   );
 }
