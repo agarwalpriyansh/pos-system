@@ -13,10 +13,10 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const onStartBilling = () => {
-    window.location.hash = isLoggedIn ? '#/pos' : '#/register';
+    window.history.pushState(null, '', isLoggedIn ? '/pos' : '/register');
   };
   const onStartLogin = () => {
-    window.location.hash = isLoggedIn ? '#/pos' : '#/login';
+    window.history.pushState(null, '', isLoggedIn ? '/pos' : '/login');
   };
 
   useEffect(() => {

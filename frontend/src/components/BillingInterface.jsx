@@ -31,38 +31,38 @@ const getLocalDateString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-export default function BillingInterface({ currentHash }) {
+export default function BillingInterface({ currentPath }) {
   const onBackToHome = () => {
-    window.location.hash = '#/';
+    window.history.pushState(null, '', '/');
   };
   // Authentication & Session State
   const [token, setToken] = useState(localStorage.getItem('pos_saas_token') || '');
   const [user, setUser] = useState(null);
   const [shop, setShop] = useState(null);
 
-  // Derive authMode and currentView from browser hash
-  const authMode = currentHash === '#/register' ? 'register' : currentHash === '#/google-setup' ? 'google-setup' : 'login';
+  // Derive authMode and currentView from browser path
+  const authMode = currentPath === '/register' ? 'register' : currentPath === '/google-setup' ? 'google-setup' : 'login';
   const setAuthMode = (mode) => {
-    window.location.hash = `#/${mode}`;
+    window.history.pushState(null, '', `/${mode}`);
   };
 
-  const currentView = currentHash === '#/dashboard' ? 'dashboard' : currentHash === '#/admin' ? 'admin' : currentHash === '#/settings' ? 'settings' : 'pos';
+  const currentView = currentPath === '/dashboard' ? 'dashboard' : currentPath === '/admin' ? 'admin' : currentPath === '/settings' ? 'settings' : 'pos';
   const setCurrentView = (view) => {
-    window.location.hash = `#/${view}`;
+    window.history.pushState(null, '', `/${view}`);
   };
 
   // Protect internal routes and automatically redirect based on session token
   useEffect(() => {
     if (!token) {
-      if (currentHash !== '#/login' && currentHash !== '#/register' && currentHash !== '#/google-setup') {
-        window.location.hash = '#/login';
+      if (currentPath !== '/login' && currentPath !== '/register' && currentPath !== '/google-setup') {
+        window.history.pushState(null, '', '/login');
       }
     } else {
-      if (currentHash === '#/login' || currentHash === '#/register') {
-        window.location.hash = '#/pos';
+      if (currentPath === '/login' || currentPath === '/register') {
+        window.history.pushState(null, '', '/pos');
       }
     }
-  }, [token, currentHash]);
+  }, [token, currentPath]);
   
   // Auth Form Inputs
   const [authEmail, setAuthEmail] = useState('');
