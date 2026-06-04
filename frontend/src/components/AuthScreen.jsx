@@ -25,6 +25,12 @@ export default function AuthScreen({
   notification,
   onBackToHome
 }) {
+  const [registerStep, setRegisterStep] = React.useState(1);
+
+  React.useEffect(() => {
+    setRegisterStep(1);
+  }, [authMode]);
+
   React.useEffect(() => {
     if (typeof window !== 'undefined' && window.google?.accounts?.id && googleClientId) {
       if (authMode !== 'google-setup') {
@@ -223,110 +229,149 @@ export default function AuthScreen({
               </div>
 
               {/* Core Forms */}
-              <form onSubmit={handleAuthSubmit} className="space-y-4 text-left">
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (authMode === 'register' && registerStep === 1) {
+                    setRegisterStep(2);
+                  } else {
+                    handleAuthSubmit(e);
+                  }
+                }} 
+                className="space-y-4 text-left"
+              >
                 {authMode === 'register' ? (
-                  // TRY FOR FREE REGISTRATION FORM
-                  <>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Select your business</label>
-                      <select 
-                        value={authShopDesc}
-                        onChange={(e) => setAuthShopDesc(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 focus:bg-white text-slate-800 transition"
-                      >
-                        <option value="">Choose Format...</option>
-                        {businessTypes.map((type, i) => (
-                          <option key={i} value={type}>{type}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Business name</label>
-                      <input
-                        type="text"
-                        required
-                        value={authShopName}
-                        onChange={(e) => setAuthShopName(e.target.value)}
-                        placeholder="e.g. Agarwal Supermarket"
-                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Owner Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={authName}
-                        onChange={(e) => setAuthName(e.target.value)}
-                        placeholder="e.g. Priyansh Agarwal"
-                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Email</label>
-                      <input
-                        type="email"
-                        required
-                        value={authEmail}
-                        onChange={(e) => setAuthEmail(e.target.value)}
-                        placeholder="merchant@retaileasy.com"
-                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Phone number *</label>
-                      <div className="flex gap-2">
-                        <select className="px-2 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none">
-                          <option>🇮🇳 +91</option>
-                        </select>
+                  registerStep === 1 ? (
+                    // STEP 1: Email and Password
+                    <>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Email Address *</label>
                         <input
-                          type="tel"
+                          type="email"
                           required
-                          value={authShopContact}
-                          onChange={(e) => setAuthShopContact(e.target.value)}
-                          placeholder="81234 56789"
-                          className="flex-grow px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                          value={authEmail}
+                          onChange={(e) => setAuthEmail(e.target.value)}
+                          placeholder="merchant@retaileasy.com"
+                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
                         />
                       </div>
-                    </div>
 
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Password *</label>
-                      <input
-                        type="password"
-                        required
-                        value={authPassword}
-                        onChange={(e) => setAuthPassword(e.target.value)}
-                        placeholder="Choose security password..."
-                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
-                      />
-                    </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Password *</label>
+                        <input
+                          type="password"
+                          required
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          placeholder="Choose security password..."
+                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                        />
+                      </div>
 
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">State</label>
-                      <select className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition">
-                        {indianStates.map((state, i) => (
-                          <option key={i} value={state}>{state}</option>
-                        ))}
-                      </select>
-                    </div>
+                      <button
+                        type="submit"
+                        className="w-full py-3 bg-[#e30613] hover:bg-[#c20510] text-white font-extrabold text-sm uppercase tracking-widest rounded-xl transition duration-150 shadow-md hover:shadow-lg active:scale-95 transform mt-2"
+                      >
+                        Continue
+                      </button>
+                    </>
+                  ) : (
+                    // STEP 2: Necessary Business Information
+                    <>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Select your business type *</label>
+                        <select 
+                          required
+                          value={authShopDesc}
+                          onChange={(e) => setAuthShopDesc(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 focus:bg-white text-slate-800 transition"
+                        >
+                          <option value="">Choose Format...</option>
+                          {businessTypes.map((type, i) => (
+                            <option key={i} value={type}>{type}</option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <div className="flex items-start gap-2.5 py-1">
-                      <input 
-                        type="checkbox" 
-                        required 
-                        id="terms" 
-                        className="mt-1 h-4 w-4 text-orange-600 focus:ring-orange-500 border-slate-300 rounded" 
-                      />
-                      <label htmlFor="terms" className="text-[11px] text-slate-500 leading-tight">
-                        I agree to the <span className="text-orange-600 font-bold hover:underline cursor-pointer">Terms of Service</span> and <span className="text-orange-600 font-bold hover:underline cursor-pointer">Privacy Policy</span>.
-                      </label>
-                    </div>
-                  </>
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Business name *</label>
+                        <input
+                          type="text"
+                          required
+                          value={authShopName}
+                          onChange={(e) => setAuthShopName(e.target.value)}
+                          placeholder="e.g. Agarwal Supermarket"
+                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Owner Name *</label>
+                        <input
+                          type="text"
+                          required
+                          value={authName}
+                          onChange={(e) => setAuthName(e.target.value)}
+                          placeholder="e.g. Priyansh Agarwal"
+                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Phone number *</label>
+                        <div className="flex gap-2">
+                          <select className="px-2 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none">
+                            <option>🇮🇳 +91</option>
+                          </select>
+                          <input
+                            type="tel"
+                            required
+                            value={authShopContact}
+                            onChange={(e) => setAuthShopContact(e.target.value)}
+                            placeholder="81234 56789"
+                            className="flex-grow px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">State</label>
+                        <select className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition">
+                          {indianStates.map((state, i) => (
+                            <option key={i} value={state}>{state}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 py-1">
+                        <input 
+                          type="checkbox" 
+                          required 
+                          id="terms" 
+                          className="mt-1 h-4 w-4 text-orange-600 focus:ring-orange-500 border-slate-300 rounded" 
+                        />
+                        <label htmlFor="terms" className="text-[11px] text-slate-500 leading-tight">
+                          I agree to the <span className="text-orange-600 font-bold hover:underline cursor-pointer">Terms of Service</span> and <span className="text-orange-600 font-bold hover:underline cursor-pointer">Privacy Policy</span>.
+                        </label>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full py-3 bg-[#e30613] hover:bg-[#c20510] text-white font-extrabold text-sm uppercase tracking-widest rounded-xl transition duration-150 shadow-md hover:shadow-lg active:scale-95 transform mt-2 disabled:opacity-50"
+                      >
+                        {loading ? 'Processing...' : 'Try it for free'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setRegisterStep(1)}
+                        className="w-full text-center text-xs font-bold text-slate-500 hover:text-orange-500 transition mt-2 cursor-pointer"
+                      >
+                        ← Edit Email & Password
+                      </button>
+                    </>
+                  )
                 ) : (
                   // LOGIN SIGN IN FORM
                   <>
@@ -353,17 +398,16 @@ export default function AuthScreen({
                         className="w-full px-3 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
                       />
                     </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-3 bg-[#e30613] hover:bg-[#c20510] text-white font-extrabold text-sm uppercase tracking-widest rounded-xl transition duration-150 shadow-md hover:shadow-lg active:scale-95 transform mt-2"
+                    >
+                      {loading ? 'Processing...' : 'Sign In'}
+                    </button>
                   </>
                 )}
-
-                {/* Submit Action Button */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 bg-[#e30613] hover:bg-[#c20510] text-white font-extrabold text-sm uppercase tracking-widest rounded-xl transition duration-150 shadow-md hover:shadow-lg active:scale-95 transform mt-2"
-                >
-                  {loading ? 'Processing...' : authMode === 'register' ? 'Try it for free' : 'Sign In'}
-                </button>
               </form>
 
               <div className="relative flex items-center justify-center my-1.5">
