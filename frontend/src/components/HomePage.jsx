@@ -5,8 +5,6 @@ export default function HomePage() {
   const [activeNav, setActiveNav] = useState('hero');
   // Mobile navbar open state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Business boosters tab state
-  const [activeBooster, setActiveBooster] = useState('gobill');
   // FAQ accordion toggle state
   const [openFaq, setOpenFaq] = useState(null);
   // Check if token exists to change CTA text
@@ -23,7 +21,7 @@ export default function HomePage() {
     setIsLoggedIn(!!localStorage.getItem('pos_saas_token'));
     
     const handleScroll = () => {
-      const sections = ['hero', 'features', 'verticals', 'boosters', 'devices', 'faqs'];
+      const sections = ['hero', 'features', 'verticals', 'faqs'];
       const scrollPosition = window.scrollY + 100;
       
       for (const section of sections) {
@@ -130,206 +128,6 @@ export default function HomePage() {
     { name: 'Multi-Chain operations', icon: '🌐', bg: 'from-violet-500/10 to-purple-500/10' }
   ];
 
-  const boosters = {
-    gobill: {
-      name: 'GoBill (Mobile POS)',
-      tagline: 'Process sales anywhere in the store to beat checkout lines.',
-      desc: 'Speed up billing with mobile POS software for retail shops that allows you to process sales anywhere in the store. Reduce long queues, manage peak hours, and improve the customer experience with quick and efficient checkouts.',
-      color: 'border-orange-500 text-orange-600',
-      iconBg: 'bg-orange-100 text-orange-600',
-      mockup: (
-        <div className="w-full max-w-xs mx-auto border-8 border-slate-900 rounded-3xl bg-slate-950 p-3 shadow-2xl relative">
-          <div className="w-16 h-4 bg-slate-900 mx-auto rounded-full mb-3"></div>
-          <div className="bg-slate-900 rounded-xl p-3 text-xs text-left text-slate-200 min-h-[300px]">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-2 mb-2">
-              <span className="font-bold text-orange-500">RetailEasy Mobile</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400">Offline Ready</span>
-            </div>
-            <div className="space-y-2">
-              <div className="p-2 bg-slate-800/80 rounded border border-slate-700">
-                <div className="flex justify-between font-medium">
-                  <span>Adidas Sports Shoes</span>
-                  <span>$89.99</span>
-                </div>
-                <div className="text-[10px] text-slate-400">Qty: 1 | Size: 10</div>
-              </div>
-              <div className="p-2 bg-slate-800/80 rounded border border-slate-700">
-                <div className="flex justify-between font-medium">
-                  <span>Crew Neck Sweatshirt</span>
-                  <span>$29.99</span>
-                </div>
-                <div className="text-[10px] text-slate-400">Qty: 2 | Color: Blue</div>
-              </div>
-            </div>
-            <div className="absolute bottom-5 left-6 right-6 space-y-2">
-              <div className="flex justify-between font-bold text-sm border-t border-slate-800 pt-2 text-white">
-                <span>Total:</span>
-                <span>$149.97</span>
-              </div>
-              <button className="w-full py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold text-center text-xs transition duration-200">
-                Process Quick Checkout
-              </button>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    gosure: {
-      name: 'GoSure (Stock Audit)',
-      tagline: 'Automate stock taking, audits and purchase checking.',
-      desc: 'Ensure accurate stock audits and seamless purchase inwards with a single app. Validate received stock with automated quality checks, eliminate inventory mismatches, and update stock records in real time for error-free inventory management.',
-      color: 'border-blue-500 text-blue-600',
-      iconBg: 'bg-blue-100 text-blue-600',
-      mockup: (
-        <div className="w-full max-w-sm mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl text-left text-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-bold text-blue-400 flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-blue-500/10">🔍</span> Inventory Audit Manager
-            </h4>
-            <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">99.8% Accuracy</span>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span>Supermarket Groceries (Aisle 4)</span>
-                <span className="text-blue-400">84% completed</span>
-              </div>
-              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div className="w-[84%] h-full bg-blue-500"></div>
-              </div>
-            </div>
-            <div className="border border-slate-800 bg-slate-950 rounded-xl p-3 space-y-2 text-xs">
-              <div className="flex justify-between text-slate-400 border-b border-slate-800 pb-1">
-                <span>Item Sku</span>
-                <span>Expected</span>
-                <span>Audited</span>
-              </div>
-              <div className="flex justify-between">
-                <span>G01-Dairy Milk 100g</span>
-                <span className="text-slate-400">120 units</span>
-                <span className="text-emerald-400 font-bold">120 (Match)</span>
-              </div>
-              <div className="flex justify-between">
-                <span>G02-Fortune Sunflower Oil</span>
-                <span className="text-slate-400">45 units</span>
-                <span className="text-amber-400 font-bold">42 (-3 Diff)</span>
-              </div>
-            </div>
-            <button className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-center text-xs">
-              Auto-Reconcile Discrepancies
-            </button>
-          </div>
-        </div>
-      )
-    },
-    ordereasy: {
-      name: 'OrderEasy (Online Store)',
-      tagline: 'Launch your store app and allow ordering online.',
-      desc: 'Enable customers to browse products, place orders, and make payments seamlessly from their mobile devices. Offer flexible delivery or pickup options to grow your online presence and sales.',
-      color: 'border-emerald-500 text-emerald-600',
-      iconBg: 'bg-emerald-100 text-emerald-600',
-      mockup: (
-        <div className="w-full max-w-xs mx-auto border-8 border-slate-900 rounded-3xl bg-slate-950 p-3 shadow-2xl relative">
-          <div className="w-16 h-4 bg-slate-900 mx-auto rounded-full mb-3"></div>
-          <div className="bg-slate-50 rounded-xl p-3 text-xs text-left text-slate-800 min-h-[300px] flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-bold text-emerald-600 text-sm">RetailEasy Store</span>
-                <span className="text-[9px] bg-slate-200 px-2 py-0.5 rounded text-slate-600">⚡ Fast Delivery</span>
-              </div>
-              <div className="bg-emerald-50 p-2 rounded-lg text-emerald-800 font-medium mb-3 text-[10px]">
-                Free delivery on orders above $20!
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="border border-slate-200 p-2 rounded-lg bg-white flex flex-col justify-between">
-                  <span className="text-[24px] text-center mb-1">🍎</span>
-                  <span className="font-bold text-[10px]">Fresh Apples</span>
-                  <span className="text-[9px] text-slate-500">$3.99/kg</span>
-                  <button className="mt-1 w-full bg-emerald-600 text-white text-[9px] py-1 rounded font-bold">Add</button>
-                </div>
-                <div className="border border-slate-200 p-2 rounded-lg bg-white flex flex-col justify-between">
-                  <span className="text-[24px] text-center mb-1">🥦</span>
-                  <span className="font-bold text-[10px]">Organic Broccoli</span>
-                  <span className="text-[9px] text-slate-500">$2.49/kg</span>
-                  <button className="mt-1 w-full bg-emerald-600 text-white text-[9px] py-1 rounded font-bold">Add</button>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white border-t border-slate-100 pt-2 flex justify-between items-center">
-              <div>
-                <span className="text-[9px] text-slate-400 block">Total Cart</span>
-                <span className="font-extrabold text-slate-900">$6.48</span>
-              </div>
-              <button className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-bold text-[10px]">Checkout</button>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    ondc: {
-      name: 'ONDC Network Integration',
-      tagline: 'Expand visibility across multiple marketplaces.',
-      desc: 'Join the ONDC Network to connect with a larger customer base. Sell across multiple platforms while managing inventory, pricing, and orders from a single integrated system.',
-      color: 'border-purple-500 text-purple-600',
-      iconBg: 'bg-purple-100 text-purple-600',
-      mockup: (
-        <div className="w-full max-w-sm mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl text-left text-slate-200">
-          <div className="flex items-center gap-3 border-b border-slate-800 pb-3 mb-3">
-            <div className="h-10 w-10 rounded-full bg-purple-600/20 text-purple-400 flex items-center justify-center font-black text-xs">
-              ONDC
-            </div>
-            <div>
-              <h4 className="font-bold text-white text-sm">ONDC Global Catalog Connector</h4>
-              <p className="text-xs text-slate-400">Sync with Paytm, Magicpin, Mystore & Pinelabs</p>
-            </div>
-          </div>
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800">
-              <span className="font-medium text-slate-300">Catalog Synchronized</span>
-              <span className="text-emerald-400 font-bold flex items-center gap-1">● Active</span>
-            </div>
-            <div className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800">
-              <span className="font-medium text-slate-300">Total orders today</span>
-              <span className="text-white font-bold">142 Orders</span>
-            </div>
-            <div className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800">
-              <span className="font-medium text-slate-300">Revenue via Network</span>
-              <span className="text-purple-400 font-bold">$1,248.50</span>
-            </div>
-          </div>
-        </div>
-      )
-    },
-    goact: {
-      name: 'GoAct (Reports & Mobile Alerts)',
-      tagline: 'Track metrics, margins, and sales live from your phone.',
-      desc: 'Make informed decisions with web-based graphical reports and the WhatsNow mobile app. Track sales, inventory, and expenses in real time, get instant alerts on stock shortages and billing edits, and manage your business anywhere.',
-      color: 'border-rose-500 text-rose-600',
-      iconBg: 'bg-rose-100 text-rose-600',
-      mockup: (
-        <div className="w-full max-w-sm mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl text-left text-slate-200">
-          <h4 className="font-bold text-white text-sm mb-3">WhatsNow Owner Dashboard</h4>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">Today's Sales</span>
-              <span className="text-base font-bold text-rose-400">$3,429.00</span>
-              <span className="text-[9px] text-emerald-400 block">↑ 12% vs yesterday</span>
-            </div>
-            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-              <span className="text-[10px] text-slate-400 block">Expiring SKUs (30 Days)</span>
-              <span className="text-base font-bold text-amber-500">14 Items</span>
-              <span className="text-[9px] text-slate-400 block">Requires Markdown</span>
-            </div>
-          </div>
-          <div className="bg-slate-950 p-2.5 rounded-lg border border-rose-500/20 text-xs">
-            <span className="font-bold text-rose-400 text-[10px] block uppercase tracking-wider mb-1">🚨 Critical Alert</span>
-            <p className="text-[11px] text-slate-300">Manager password override used for 15% discount on Invoice #RE-9082. Cashier: Sarah Miller.</p>
-          </div>
-        </div>
-      )
-    }
-  };
-
   const faqs = [
     {
       q: 'What is retail software, and how does it help businesses?',
@@ -394,18 +192,7 @@ export default function HomePage() {
             >
               Verticals
             </button>
-            <button 
-              onClick={() => scrollToSection('boosters')} 
-              className={`font-semibold text-sm transition-colors duration-200 ${activeNav === 'boosters' ? 'text-orange-600' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              Boosters
-            </button>
-            <button 
-              onClick={() => scrollToSection('devices')} 
-              className={`font-semibold text-sm transition-colors duration-200 ${activeNav === 'devices' ? 'text-orange-600' : 'text-slate-600 hover:text-slate-900'}`}
-            >
-              Solutions
-            </button>
+
             <button 
               onClick={() => scrollToSection('faqs')} 
               className={`font-semibold text-sm transition-colors duration-200 ${activeNav === 'faqs' ? 'text-orange-600' : 'text-slate-600 hover:text-slate-900'}`}
@@ -463,18 +250,7 @@ export default function HomePage() {
             >
               Verticals
             </button>
-            <button 
-              onClick={() => scrollToSection('boosters')} 
-              className="block w-full text-left py-2 font-medium text-slate-600 hover:text-orange-600"
-            >
-              Boosters
-            </button>
-            <button 
-              onClick={() => scrollToSection('devices')} 
-              className="block w-full text-left py-2 font-medium text-slate-600 hover:text-orange-600"
-            >
-              Solutions
-            </button>
+
             <button 
               onClick={() => scrollToSection('faqs')} 
               className="block w-full text-left py-2 font-medium text-slate-600 hover:text-orange-600"
@@ -725,167 +501,13 @@ export default function HomePage() {
               >
                 Register for Free Trial
               </button>
-              <button 
-                onClick={() => scrollToSection('boosters')}
-                className="px-6 py-3 border border-slate-200 hover:border-slate-300 text-slate-700 font-bold text-sm rounded-xl transition"
-              >
-                Learn About Boosters
-              </button>
+
             </div>
           </div>
         </div>
       </section>
 
-      {/* Business Boosters */}
-      <section id="boosters" className="py-20 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto space-y-4">
-            <span className="text-orange-600 font-extrabold text-xs uppercase tracking-wider bg-orange-50 px-3 py-1 rounded-full">
-              Business Boosters
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">
-              Interactive Business Boosters
-            </h2>
-            <p className="text-slate-600 text-base">
-              Add specialized modules and companion apps to automate every facet of your retail workflow.
-            </p>
-          </div>
 
-          {/* Interactive tabs */}
-          <div className="mt-12 grid lg:grid-cols-12 gap-8 items-center">
-            
-            {/* Left selector */}
-            <div className="lg:col-span-5 space-y-3">
-              {Object.keys(boosters).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveBooster(key)}
-                  className={`w-full p-4 rounded-xl border text-left flex items-start gap-4 transition-all duration-200 ${
-                    activeBooster === key
-                      ? 'bg-white border-orange-500 shadow-md translate-x-2'
-                      : 'bg-white/50 border-slate-100 hover:bg-white hover:border-slate-200'
-                  }`}
-                >
-                  <span className="text-2xl mt-0.5">
-                    {key === 'gobill' ? '📱' : key === 'gosure' ? '🔍' : key === 'ordereasy' ? '🛒' : key === 'ondc' ? '🌐' : '📊'}
-                  </span>
-                  <div>
-                    <h4 className="font-extrabold text-slate-900 text-sm">
-                      {boosters[key].name}
-                    </h4>
-                    <span className="text-slate-500 text-xs line-clamp-1">
-                      {boosters[key].tagline}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Right Preview Details */}
-            <div className="lg:col-span-7 bg-white border border-slate-100 p-8 rounded-3xl shadow-lg grid md:grid-cols-12 gap-8 items-center min-h-[420px]">
-              <div className="md:col-span-6 space-y-4 text-left">
-                <span className="px-2.5 py-1 text-[10px] font-bold text-orange-600 bg-orange-50 rounded uppercase tracking-wider">
-                  Booster Component
-                </span>
-                <h3 className="text-2xl font-black text-slate-900 leading-tight">
-                  {boosters[activeBooster].name}
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  {boosters[activeBooster].desc}
-                </p>
-                <div className="pt-2">
-                  <button 
-                    onClick={onStartBilling}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow-md transition"
-                  >
-                    Activate {activeBooster.toUpperCase()} Now
-                  </button>
-                </div>
-              </div>
-              <div className="md:col-span-6 flex justify-center">
-                {boosters[activeBooster].mockup}
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* Freedom of Choice / Solutions */}
-      <section id="devices" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto space-y-4">
-            <span className="text-orange-600 font-extrabold text-xs uppercase tracking-wider bg-orange-50 px-3 py-1 rounded-full">
-              Deployment Models
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900">
-              Freedom of choice: Choose the right solution for your retail business
-            </h2>
-            <p className="text-slate-600 text-base">
-              Choose the deployment style that fits your hardware setup and store scale.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 mt-16">
-            {/* On Premise */}
-            <div className="border border-slate-100 hover:border-orange-500/20 p-8 rounded-2xl hover:shadow-xl shadow-sm transition flex flex-col justify-between text-left space-y-6">
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-2xl">
-                  🖥️
-                </div>
-                <h3 className="font-extrabold text-xl text-slate-900">
-                  On-premise systems
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  Enjoy full customization and lower operating costs with an on-premise POS. A perfect choice for businesses that need total control over data, offline access, and tailored retail operations.
-                </p>
-              </div>
-              <button onClick={onStartBilling} className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow transition">
-                Configure On-Premise Solution
-              </button>
-            </div>
-
-            {/* Cloud solutions */}
-            <div className="border-2 border-orange-500/50 p-8 rounded-2xl shadow-md flex flex-col justify-between text-left space-y-6 relative bg-gradient-to-b from-orange-50/10 to-white">
-              <div className="absolute -top-3.5 left-6 px-3 py-1 bg-orange-600 text-white rounded-full font-bold text-[10px] tracking-wider uppercase">
-                Most Popular
-              </div>
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl">
-                  ☁️
-                </div>
-                <h3 className="font-extrabold text-xl text-slate-900">
-                  Cloud solutions
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  Reduce capital investment and improve flexibility with a cloud-based POS. Access real-time data, enable automatic updates, and scale effortlessly to meet your growing business needs.
-                </p>
-              </div>
-              <button onClick={onStartBilling} className="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-xs rounded-xl shadow transition">
-                Launch Cloud Instance Free
-              </button>
-            </div>
-
-            {/* Mobile/Tablet solutions */}
-            <div className="border border-slate-100 hover:border-orange-500/20 p-8 rounded-2xl hover:shadow-xl shadow-sm transition flex flex-col justify-between text-left space-y-6">
-              <div className="space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-2xl">
-                  📱
-                </div>
-                <h3 className="font-extrabold text-xl text-slate-900">
-                  Mobile/tablet solutions
-                </h3>
-                <p className="text-slate-600 text-sm leading-relaxed">
-                  Simplify billing with a compact, mobile-friendly POS software for retail shops. Ideal for small stores, pop-up shops, and businesses with limited counter space, this reduces hardware costs while increasing efficiency.
-                </p>
-              </div>
-              <button onClick={onStartBilling} className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl shadow transition">
-                Explore Mobile Handhelds
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Customer Testimonials */}
       <section className="py-20 bg-slate-50 border-t border-slate-100">
@@ -1054,8 +676,7 @@ export default function HomePage() {
             <ul className="space-y-2 text-xs">
               <li><button onClick={() => scrollToSection('features')} className="hover:text-white transition">Features</button></li>
               <li><button onClick={() => scrollToSection('verticals')} className="hover:text-white transition">Verticals</button></li>
-              <li><button onClick={() => scrollToSection('boosters')} className="hover:text-white transition">Business Boosters</button></li>
-              <li><button onClick={() => scrollToSection('devices')} className="hover:text-white transition">Deployment Models</button></li>
+
             </ul>
           </div>
 
