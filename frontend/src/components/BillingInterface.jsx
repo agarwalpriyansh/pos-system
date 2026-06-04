@@ -428,33 +428,12 @@ export default function BillingInterface({ currentPath }) {
 
   // Google OAuth Login Simulation
   const handleGoogleOAuthSimulate = async () => {
-    setLoading(true);
-    const googleId = `g-${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-    const email = `g.sandbox.${Math.floor(1000 + Math.random() * 9000)}@gmail.com`;
-    const name = `OAuth Sandbox Merchant`;
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/google-oauth`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ googleId, email, name })
-      });
-      const data = await res.json();
-      
-      if (res.ok) {
-        localStorage.setItem('pos_saas_token', data.token);
-        setToken(data.token);
-        setUser(data.user);
-        setShop(data.shop);
-        triggerNotification('success', 'Logged in successfully via simulated Google OAuth!');
-      } else {
-        throw new Error(data.error || 'Google OAuth failed');
-      }
-    } catch (err) {
-      triggerNotification('error', err.message);
-    } finally {
-      setLoading(false);
-    }
+    const email = authEmail || 'sandbox@retaileasy.com';
+    const name = authName || 'OAuth Sandbox Merchant';
+    const googleId = `g-mock-${email.replace(/[^a-zA-Z0-9]/g, '')}`;
+    const mockToken = `mock-oauth-token:${googleId}:${email}:${name}`;
+    
+    await handleGoogleLogin(mockToken);
   };
 
   // Real Google Sign-in Handler

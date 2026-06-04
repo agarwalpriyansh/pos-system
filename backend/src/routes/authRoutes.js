@@ -9,6 +9,15 @@ const { OAuth2Client } = require('google-auth-library');
 
 let googleOAuthClient;
 const verifyGoogleToken = async (token) => {
+  if (token && typeof token === 'string' && token.startsWith('mock-oauth-token:')) {
+    const parts = token.split(':');
+    return {
+      sub: parts[1] || 'mock-google-id',
+      email: parts[2] || 'mock@example.com',
+      name: parts[3] || 'Mock User'
+    };
+  }
+
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId || clientId.startsWith('your-google-client-id-here')) {
     throw new Error('Google OAuth is not configured on the server. Please define GOOGLE_CLIENT_ID.');
@@ -169,40 +178,7 @@ router.post('/google-oauth', async (req, res) => {
     let shop;
 
     if (!user) {
-      // 1. Create a default Shop profile for this OAuth registration
-      let shopId = '';
-      let isUnique = false;
-      while (!isUnique) {
-        shopId = `shop-${Math.floor(100000 + Math.random() * 900000)}`;
-        const existingShop = await Shop.findOne({ shopId });
-        if (!existingShop) {
-          isUnique = true;
-        }
-      }
-
-      shop = new Shop({
-        shopId,
-        name: `${name}'s Shop`,
-        description: 'Multi-Tenant POS SaaS Instance registered via Google OAuth.',
-        contact: ''
-      });
-      await shop.save();
-
-      // 2. Generate a random password for OAuth schema (since password is required)
-      const randomPassword = Math.random().toString(36).substring(2, 15);
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(randomPassword, salt);
-
-      // 3. Create owner user
-      user = new User({
-        shopId,
-        name,
-        email,
-        password: hashedPassword,
-        role: 'Owner',
-        googleId
-      });
-      await user.save();
+      return res.status(400).json({ error: 'This simulated Google account is not registered. Please register first.' });
     } else {
       // If user exists, fetch shop info
       shop = await Shop.findOne({ shopId: user.shopId });

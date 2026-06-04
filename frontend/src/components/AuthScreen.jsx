@@ -21,6 +21,7 @@ export default function AuthScreen({
   googleClientId,
   handleGoogleLogin,
   handleGoogleRegisterSubmit,
+  googleUserPayload,
   notification,
   onBackToHome
 }) {
