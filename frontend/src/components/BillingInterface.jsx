@@ -390,7 +390,7 @@ export default function BillingInterface({ currentPath }) {
           shopContact: authShopContact, 
           ownerName: authName, 
           ownerEmail: authEmail, 
-          password: authPassword 
+          password: authPassword || authShopContact || '123456'
         };
 
     try {

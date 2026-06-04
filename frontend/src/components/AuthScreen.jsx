@@ -21,16 +21,9 @@ export default function AuthScreen({
   googleClientId,
   handleGoogleLogin,
   handleGoogleRegisterSubmit,
-  googleUserPayload,
   notification,
   onBackToHome
 }) {
-  const [registerStep, setRegisterStep] = React.useState(1);
-
-  React.useEffect(() => {
-    setRegisterStep(1);
-  }, [authMode]);
-
   React.useEffect(() => {
     if (typeof window !== 'undefined' && window.google?.accounts?.id && googleClientId) {
       if (authMode !== 'google-setup') {
@@ -230,149 +223,109 @@ export default function AuthScreen({
               </div>
 
               {/* Core Forms */}
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (authMode === 'register' && registerStep === 1) {
-                    setRegisterStep(2);
-                  } else {
-                    handleAuthSubmit(e);
-                  }
-                }} 
-                className="space-y-4 text-left"
-              >
+              <form onSubmit={handleAuthSubmit} className="space-y-6 text-left">
                 {authMode === 'register' ? (
-                  registerStep === 1 ? (
-                    // STEP 1: Email and Password
-                    <>
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Email Address *</label>
-                        <input
-                          type="email"
-                          required
-                          value={authEmail}
-                          onChange={(e) => setAuthEmail(e.target.value)}
-                          placeholder="merchant@retaileasy.com"
-                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Password *</label>
-                        <input
-                          type="password"
-                          required
-                          value={authPassword}
-                          onChange={(e) => setAuthPassword(e.target.value)}
-                          placeholder="Choose security password..."
-                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
-                        />
-                      </div>
-
-                      <button
-                        type="submit"
-                        className="w-full py-3 bg-[#e30613] hover:bg-[#c20510] text-white font-extrabold text-sm uppercase tracking-widest rounded-xl transition duration-150 shadow-md hover:shadow-lg active:scale-95 transform mt-2"
+                  // TRY FOR FREE REGISTRATION FORM
+                  <>
+                    {/* Select your business */}
+                    <div className="relative border-b border-slate-200 focus-within:border-red-500 transition">
+                      <select 
+                        required
+                        value={authShopDesc}
+                        onChange={(e) => setAuthShopDesc(e.target.value)}
+                        className={`w-full py-3.5 bg-transparent text-base font-normal focus:outline-none appearance-none cursor-pointer pr-10 ${authShopDesc ? 'text-slate-900' : 'text-slate-400'}`}
                       >
-                        Continue
-                      </button>
-                    </>
-                  ) : (
-                    // STEP 2: Necessary Business Information
-                    <>
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Select your business type *</label>
-                        <select 
-                          required
-                          value={authShopDesc}
-                          onChange={(e) => setAuthShopDesc(e.target.value)}
-                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 focus:bg-white text-slate-800 transition"
-                        >
-                          <option value="">Choose Format...</option>
-                          {businessTypes.map((type, i) => (
-                            <option key={i} value={type}>{type}</option>
-                          ))}
-                        </select>
+                        <option value="" disabled hidden>Select your business</option>
+                        {businessTypes.map((type, i) => (
+                          <option key={i} value={type} className="text-slate-800 font-normal">{type}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-2 top-4 pointer-events-none text-slate-400">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
                       </div>
+                    </div>
 
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Business name *</label>
+                    {/* Enter your business name */}
+                    <div className="border-b border-slate-200 focus-within:border-red-500 transition">
+                      <input
+                        type="text"
+                        required
+                        value={authShopName}
+                        onChange={(e) => setAuthShopName(e.target.value)}
+                        placeholder="Enter your business name"
+                        className="w-full py-3.5 bg-transparent text-base text-slate-900 placeholder-slate-400 font-normal focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Enter owner name */}
+                    <div className="border-b border-slate-200 focus-within:border-red-500 transition">
+                      <input
+                        type="text"
+                        required
+                        value={authName}
+                        onChange={(e) => setAuthName(e.target.value)}
+                        placeholder="Enter owner name"
+                        className="w-full py-3.5 bg-transparent text-base text-slate-900 placeholder-slate-400 font-normal focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Enter your email address */}
+                    <div className="border-b border-slate-200 focus-within:border-red-500 transition">
+                      <input
+                        type="email"
+                        required
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
+                        placeholder="Enter your email address"
+                        className="w-full py-3.5 bg-transparent text-base text-slate-900 placeholder-slate-400 font-normal focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Enter your mobile number */}
+                    <div className="flex items-end">
+                      <div className="flex items-center gap-1.5 bg-slate-100 border-b border-slate-200 px-3 py-3.5 text-slate-700 text-sm rounded-t-lg font-normal select-none mr-2">
+                        <span>🇮🇳</span>
+                        <span>+91</span>
+                        <svg className="w-3 h-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                      <div className="flex-grow border-b border-slate-200 focus-within:border-red-500 transition">
                         <input
-                          type="text"
+                          type="tel"
                           required
-                          value={authShopName}
-                          onChange={(e) => setAuthShopName(e.target.value)}
-                          placeholder="e.g. Agarwal Supermarket"
-                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
+                          value={authShopContact}
+                          onChange={(e) => setAuthShopContact(e.target.value)}
+                          placeholder="Enter your mobile number"
+                          className="w-full py-3.5 bg-transparent text-base text-slate-900 placeholder-slate-400 font-normal focus:outline-none"
                         />
                       </div>
+                    </div>
 
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Owner Name *</label>
-                        <input
-                          type="text"
-                          required
-                          value={authName}
-                          onChange={(e) => setAuthName(e.target.value)}
-                          placeholder="e.g. Priyansh Agarwal"
-                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
-                        />
-                      </div>
+                    {/* Terms of Service */}
+                    <div className="flex items-start gap-2.5 py-1">
+                      <input 
+                        type="checkbox" 
+                        required 
+                        id="terms" 
+                        className="mt-1 h-4 w-4 text-[#e30613] focus:ring-[#e30613] border-slate-300 rounded" 
+                      />
+                      <label htmlFor="terms" className="text-[11px] text-slate-500 leading-tight">
+                        I agree to the <span className="text-[#e30613] font-bold hover:underline cursor-pointer">Terms of Service</span> and <span className="text-[#e30613] font-bold hover:underline cursor-pointer">Privacy Policy</span>.
+                      </label>
+                    </div>
 
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Phone number *</label>
-                        <div className="flex gap-2">
-                          <select className="px-2 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 focus:outline-none">
-                            <option>🇮🇳 +91</option>
-                          </select>
-                          <input
-                            type="tel"
-                            required
-                            value={authShopContact}
-                            onChange={(e) => setAuthShopContact(e.target.value)}
-                            placeholder="81234 56789"
-                            className="flex-grow px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">State</label>
-                        <select className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 text-slate-800 transition">
-                          {indianStates.map((state, i) => (
-                            <option key={i} value={state}>{state}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="flex items-start gap-2.5 py-1">
-                        <input 
-                          type="checkbox" 
-                          required 
-                          id="terms" 
-                          className="mt-1 h-4 w-4 text-orange-600 focus:ring-orange-500 border-slate-300 rounded" 
-                        />
-                        <label htmlFor="terms" className="text-[11px] text-slate-500 leading-tight">
-                          I agree to the <span className="text-orange-600 font-bold hover:underline cursor-pointer">Terms of Service</span> and <span className="text-orange-600 font-bold hover:underline cursor-pointer">Privacy Policy</span>.
-                        </label>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full py-3 bg-[#e30613] hover:bg-[#c20510] text-white font-extrabold text-sm uppercase tracking-widest rounded-xl transition duration-150 shadow-md hover:shadow-lg active:scale-95 transform mt-2 disabled:opacity-50"
-                      >
-                        {loading ? 'Processing...' : 'Try it for free'}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setRegisterStep(1)}
-                        className="w-full text-center text-xs font-bold text-slate-500 hover:text-orange-500 transition mt-2 cursor-pointer"
-                      >
-                        ← Edit Email & Password
-                      </button>
-                    </>
-                  )
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-3 bg-[#e30613] hover:bg-[#c20510] text-white font-extrabold text-sm uppercase tracking-widest rounded-xl transition duration-150 shadow-md hover:shadow-lg active:scale-95 transform mt-2 disabled:opacity-50"
+                    >
+                      {loading ? 'Processing...' : 'Try it for free'}
+                    </button>
+                  </>
                 ) : (
                   // LOGIN SIGN IN FORM
                   <>
@@ -441,7 +394,7 @@ export default function AuthScreen({
           <img 
             src="/register-hero.png" 
             alt="RetailEasy POS Features Overview" 
-            className="w-full h-auto object-contain max-h-[520px]"
+            className="w-full h-auto object-contain max-h-[520px] scale-105 transform transition duration-300 hover:scale-110"
           />
         </div>
       </main>
