@@ -27,6 +27,7 @@ export default function PosView({
   adminStock,
   setAdminStock,
   adminCategory,
+  setAdminCategory,
   handleDeleteProduct,
   showMobileCart,
   setShowMobileCart,
