@@ -435,42 +435,13 @@ export default function AuthScreen({
           )}
         </div>
 
-        {/* Right Testimonial Card */}
-        <div className="bg-blue-50/20 border border-blue-100/50 rounded-3xl p-8 sm:p-10 flex flex-col justify-between items-center text-center shadow-sm relative overflow-hidden">
-          
-          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-100/30 rounded-full blur-2xl"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-orange-100/20 rounded-full blur-2xl"></div>
-
-          {/* Testimonial Logo (Kamlas) */}
-          <div className="flex flex-col items-center">
-            <span className="text-[28px] leading-none select-none">🏬</span>
-            <div className="font-serif italic text-red-700 font-extrabold text-xl leading-none mt-1 tracking-tight flex items-center gap-1">
-              Kamla's
-              <span className="font-sans text-[8px] uppercase tracking-wider font-extrabold bg-red-700 text-white px-1.5 py-0.5 rounded leading-none">
-                HYPERMART
-              </span>
-            </div>
-          </div>
-
-          {/* Customer Quote */}
-          <div className="my-6 relative">
-            <span className="absolute -top-6 -left-4 text-4xl text-blue-200/80 font-serif">“</span>
-            <p className="text-slate-600 text-sm leading-relaxed font-medium">
-              A POS software needs to give a positive impact on your business - with increase in customer base and margins. RetailEasy did exactly that for us, which all our earlier software didn't. RetailEasy has given us 100% accuracy in stock across all our departments and floors, we never have to redo stock taking. Integrated accounts has made our life very easy and peaceful.
-            </p>
-            <span className="absolute -bottom-10 -right-4 text-4xl text-blue-200/80 font-serif">”</span>
-          </div>
-
-          {/* Customer Profile info */}
-          <div className="mt-4">
-            <h4 className="font-bold text-slate-800 text-sm leading-normal">
-              Mr. Ajith Gopinath
-            </h4>
-            <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mt-0.5">
-              Proprietor, Kamlas Supermarket
-            </p>
-          </div>
-
+        {/* Right Side Image Presentation */}
+        <div className="bg-white rounded-3xl p-6 flex items-center justify-center shadow-xl shadow-slate-100/70 border border-slate-100/80 relative overflow-hidden">
+          <img 
+            src="/register-hero.png" 
+            alt="RetailEasy POS Features Overview" 
+            className="w-full h-auto object-contain max-h-[520px]"
+          />
         </div>
       </main>
 
