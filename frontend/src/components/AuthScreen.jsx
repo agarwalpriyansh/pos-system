@@ -72,8 +72,18 @@ export default function AuthScreen({
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between p-4 sm:p-6 md:p-8 font-sans selection:bg-orange-500/20 selection:text-orange-600">
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col justify-between p-4 sm:p-6 md:p-8 font-sans selection:bg-orange-500/20 selection:text-orange-600 relative">
       
+      {/* Back Button */}
+      {onBackToHome && (
+        <button
+          onClick={onBackToHome}
+          className="absolute top-6 left-6 sm:top-8 sm:left-8 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 hover:text-orange-600 transition duration-150 flex items-center gap-1.5 shadow-sm hover:shadow-md cursor-pointer"
+        >
+          ← Back to home
+        </button>
+      )}
+
       {/* Top Notification */}
       {notification && (
         <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl bg-emerald-900 text-emerald-100 border border-emerald-500/30 animate-slideIn">
@@ -83,22 +93,13 @@ export default function AuthScreen({
 
       {/* Top Header Section */}
       <header className="max-w-7xl w-full mx-auto flex flex-col items-center gap-4 text-center mt-2">
-        <div className="flex items-center gap-3 relative">
-          {onBackToHome && (
-            <button
-              onClick={onBackToHome}
-              className="absolute -left-24 top-2 text-xs font-bold text-slate-500 hover:text-orange-500 transition duration-150 flex items-center gap-1.5"
-            >
-              ← Back
-            </button>
-          )}
-          
-          <div className="flex flex-col items-center select-none">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none">GOFRUGAL</span>
-            <span className="text-2xl font-black tracking-tight text-slate-900 leading-normal">
-              Retail<span className="text-orange-600">Easy</span>
-            </span>
+        <div className="flex items-center gap-2 select-none">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-extrabold text-xl shadow-lg shadow-orange-500/20">
+            R
           </div>
+          <span className="text-2xl font-black tracking-tight text-slate-900">
+            Retail<span className="text-orange-600">Easy</span>
+          </span>
         </div>
 
         <div className="space-y-1">
