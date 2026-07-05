@@ -26,6 +26,11 @@ func main() {
 	}
 	log.Println("[Worker Init] Connection to Redis verified successfully.")
 
+	// Instantiate Notifiers (DIP / OCP compliance)
+	whatsappNotifier := workers.NewWhatsAppNotifier(cfg)
+	emailNotifier := workers.NewEmailNotifier(cfg)
+	notifiers := []workers.Notifier{whatsappNotifier, emailNotifier}
+
 	// Context for graceful shutdown
 	runCtx, stopWorkers := context.WithCancel(context.Background())
 	
@@ -35,7 +40,7 @@ func main() {
 	// Boot Worker Pool
 	for i := 1; i <= cfg.WorkerCount; i++ {
 		wg.Add(1)
-		go workers.StartWorker(runCtx, &wg, i, rdb, cfg)
+		go workers.StartWorker(runCtx, &wg, i, rdb, cfg, notifiers)
 	}
 
 	// Capture Shutdown Signals

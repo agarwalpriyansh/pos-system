@@ -8,8 +8,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/smtp"
-	"strings"
 	"sync"
 	"time"
 
@@ -17,11 +15,10 @@ import (
 
 	"pos-whatsapp-worker/config"
 	"pos-whatsapp-worker/queue"
-	"pos-whatsapp-worker/templates"
 	"pos-whatsapp-worker/types"
 )
 
-func StartWorker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Client, cfg config.Config) {
+func StartWorker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Client, cfg config.Config, notifiers []Notifier) {
 	defer wg.Done()
 	log.Printf("[Worker Thread #%d] Online and listening for tasks...", id)
 
@@ -82,25 +79,27 @@ func StartWorker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Cli
 			// Task processed under locked protection
 			log.Printf("[Worker Thread #%d] Lock acquired for Bill ID %s. Commencing dispatch...", id, task.BillID)
 			
-			successWhatsApp := sendWhatsAppMessage(cfg, client, task)
-			
+			// Polymorphic Send over all registered Notifiers (OCP / DIP compliance)
+			var successWhatsApp bool
 			var successEmail bool
-			if task.CustomerEmail != "" {
-				successEmail = sendEmailMessage(cfg, task)
-			} else {
-				log.Printf("[Worker Thread #%d] No email provided for customer %s. Skipping email dispatch.", id, task.CustomerName)
-				successEmail = true
+			hasEmail := task.CustomerEmail != ""
+
+			for _, notifier := range notifiers {
+				success := notifier.Send(ctx, task)
+				if notifier.Name() == "WhatsApp" {
+					successWhatsApp = success
+				} else if notifier.Name() == "Email" {
+					successEmail = success
+				}
 			}
-			
-			success := successWhatsApp && successEmail
-			
+
 			// Release distributed lock
 			queue.ReleaseLock(ctx, rdb, lockKey)
 			
 			// Notify backend service of completion to update DB
-			updateBillStatus(cfg, client, task.BillID, successWhatsApp, task.CustomerEmail != "", successEmail)
+			updateBillStatus(cfg, client, task.BillID, successWhatsApp, hasEmail, successEmail)
 			
-			log.Printf("[Worker Thread #%d] Completed processing for invoice %s. Success = %t", id, task.InvoiceNumber, success)
+			log.Printf("[Worker Thread #%d] Completed processing for invoice %s.", id, task.InvoiceNumber)
 		}
 	}
 }
@@ -151,108 +150,4 @@ func updateBillStatus(cfg config.Config, client *http.Client, billID string, suc
 	}
 
 	log.Printf("[Status Updater] Successfully updated DB status for Bill ID %s in backend.", billID)
-}
-
-// executes WhatsApp API
-func sendWhatsAppMessage(cfg config.Config, client *http.Client, task types.QueueTask) bool {
-	messageText := templates.BuildWhatsAppMessage(task)
-
-	toPhone := strings.TrimPrefix(task.CustomerPhone, "+")
-	toPhone = strings.ReplaceAll(toPhone, " ", "")
-	toPhone = strings.ReplaceAll(toPhone, "-", "")
-
-	whatsappPayload := map[string]interface{}{
-		"messaging_product": "whatsapp",
-		"recipient_type":    "individual",
-		"to":                toPhone,
-		"type":              "text",
-		"text": map[string]interface{}{
-			"preview_url": false,
-			"body":         messageText,
-		},
-	}
-
-	payloadBytes, err := json.Marshal(whatsappPayload)
-	if err != nil {
-		log.Printf("[WhatsApp Handler] Marshalling JSON failed: %v", err)
-		return false
-	}
-
-	if cfg.MockWhatsApp {
-		log.Printf("\n--- [MOCK WHATSAPP DISPATCH] ---\n"+
-			"To: %s\n"+
-			"URL: %s/%s/messages\n"+
-			"Authorization: Bearer [REDACTED]\n"+
-			"Message Body:\n%s\n"+
-			"--------------------------------",
-			task.CustomerPhone, cfg.WhatsAppAPIURL, cfg.WhatsAppPhoneID, messageText)
-		return true
-	}
-
-	url := fmt.Sprintf("%s/%s/messages", cfg.WhatsAppAPIURL, cfg.WhatsAppPhoneID)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		log.Printf("[WhatsApp Handler] Failed to create HTTP request: %v", err)
-		return false
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+cfg.WhatsAppToken)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("[WhatsApp Handler] API Connection Error: %v", err)
-		return false
-	}
-	defer resp.Body.Close()
-
-	respBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		log.Printf("[WhatsApp Handler] Meta API rejected request. Status: %d. Response: %s", 
-			resp.StatusCode, string(respBody))
-		return false
-	}
-
-	log.Printf("[WhatsApp Handler] Success: Invoice %s transmitted to Meta networks.", task.InvoiceNumber)
-	return true
-}
-
-// executes SMTP transmission
-func sendEmailMessage(cfg config.Config, task types.QueueTask) bool {
-	shopName := task.ShopName
-	if shopName == "" {
-		shopName = "DS DRYFRUITS"
-	}
-
-	subject := fmt.Sprintf("Invoice %s from %s", task.InvoiceNumber, shopName)
-	fromHeader := fmt.Sprintf("\"%s\" <%s>", shopName, cfg.SMTPFromEmail)
-	
-	htmlBody := templates.BuildEmailHTML(task)
-
-	if cfg.MockEmail {
-		log.Printf("\n--- [MOCK EMAIL DISPATCH] ---\n"+
-			"To: %s\n"+
-			"Subject: %s\n"+
-			"From: %s\n"+
-			"HTML Body Preview:\n%s\n"+
-			"--------------------------------",
-			task.CustomerEmail, subject, fromHeader, htmlBody)
-		return true
-	}
-
-	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
-	message := []byte(fmt.Sprintf("To: %s\nFrom: %s\nSubject: %s\n%s%s", 
-		task.CustomerEmail, fromHeader, subject, mime, htmlBody))
-
-	auth := smtp.PlainAuth("", cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPHost)
-	addr := fmt.Sprintf("%s:%d", cfg.SMTPHost, cfg.SMTPPort)
-
-	err := smtp.SendMail(addr, auth, cfg.SMTPFromEmail, []string{task.CustomerEmail}, message)
-	if err != nil {
-		log.Printf("[Email Handler] Failed to send email using smtp.SendMail: %v", err)
-		return false
-	}
-
-	log.Printf("[Email Handler] Success: Invoice %s transmitted to email SMTP gateway.", task.InvoiceNumber)
-	return true
 }
