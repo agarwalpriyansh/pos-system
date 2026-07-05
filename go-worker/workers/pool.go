@@ -18,6 +18,8 @@ import (
 	"pos-whatsapp-worker/types"
 )
 
+const MaxRetries = 3
+
 func StartWorker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Client, cfg config.Config, notifiers []Notifier) {
 	defer wg.Done()
 	log.Printf("[Worker Thread #%d] Online and listening for tasks...", id)
@@ -30,8 +32,8 @@ func StartWorker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Cli
 			log.Printf("[Worker Thread #%d] Stopping thread...", id)
 			return
 		default:
-			// Fetch from Redis Queue (using BRPOP with a 2-second timeout to allow loop cancellation check)
-			result, err := queue.PopQueue(ctx, rdb, cfg.QueueName, 2*time.Second)
+			// Fetch from Redis Queue reliably (using BLMove to shift popped item to processing list)
+			payload, err := queue.PopQueueReliable(ctx, rdb, cfg.QueueName, 2*time.Second)
 			if err != nil {
 				if err == redis.Nil {
 					// Queue empty, continue polling
@@ -41,25 +43,20 @@ func StartWorker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Cli
 				if ctx.Err() != nil {
 					continue
 				}
-				log.Printf("[Worker Thread #%d] Redis BRPOP error: %v", id, err)
+				log.Printf("[Worker Thread #%d] Redis BLMove error: %v", id, err)
 				time.Sleep(1 * time.Second) // Prevent tight crash loop
 				continue
 			}
 
-			// BRPOP returns slice: [queueName, payload]
-			if len(result) < 2 {
-				continue
-			}
-			payload := result[1]
-
 			var task types.QueueTask
 			if err := json.Unmarshal([]byte(payload), &task); err != nil {
 				log.Printf("[Worker Thread #%d] Failed to parse message JSON: %v. Raw: %s", id, err, payload)
+				queue.RemoveProcessing(ctx, rdb, cfg.QueueName, payload) // discard corrupt payload
 				continue
 			}
 
-			log.Printf("[Worker Thread #%d] Received Task: Bill ID: %s, Customer: %s (%s)", 
-				id, task.BillID, task.CustomerName, task.CustomerPhone)
+			log.Printf("[Worker Thread #%d] Received Task: Bill ID: %s, Customer: %s (%s), Retry Attempt: %d", 
+				id, task.BillID, task.CustomerName, task.CustomerPhone, task.RetryCount)
 
 			// --- ATOMIC LOCKING & IDEMPOTENCY STRATEGY ---
 			lockKey := fmt.Sprintf("lock:bill:%s", task.BillID)
@@ -73,13 +70,14 @@ func StartWorker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Cli
 			if !acquired {
 				log.Printf("[Worker Thread #%d] WARNING: Duplicate task discarded. Bill %s already locked by another worker.", 
 					id, task.BillID)
+				queue.RemoveProcessing(ctx, rdb, cfg.QueueName, payload) // clean processing list
 				continue
 			}
 
 			// Task processed under locked protection
 			log.Printf("[Worker Thread #%d] Lock acquired for Bill ID %s. Commencing dispatch...", id, task.BillID)
 			
-			// Polymorphic Send over all registered Notifiers (OCP / DIP compliance)
+			// Polymorphic Send over all registered Notifiers
 			var successWhatsApp bool
 			var successEmail bool
 			hasEmail := task.CustomerEmail != ""
@@ -95,11 +93,48 @@ func StartWorker(ctx context.Context, wg *sync.WaitGroup, id int, rdb *redis.Cli
 
 			// Release distributed lock
 			queue.ReleaseLock(ctx, rdb, lockKey)
-			
-			// Notify backend service of completion to update DB
-			updateBillStatus(cfg, client, task.BillID, successWhatsApp, hasEmail, successEmail)
-			
-			log.Printf("[Worker Thread #%d] Completed processing for invoice %s.", id, task.InvoiceNumber)
+
+			allSuccess := successWhatsApp && (successEmail || !hasEmail)
+
+			if allSuccess {
+				// Remove from processing queue on success
+				queue.RemoveProcessing(ctx, rdb, cfg.QueueName, payload)
+				updateBillStatus(cfg, client, task.BillID, successWhatsApp, hasEmail, successEmail)
+				log.Printf("[Worker Thread #%d] Successfully completed processing for invoice %s.", id, task.InvoiceNumber)
+			} else {
+				// Increment retry count
+				task.RetryCount++
+				
+				// Remove old payload from processing queue
+				queue.RemoveProcessing(ctx, rdb, cfg.QueueName, payload)
+
+				updatedPayloadBytes, _ := json.Marshal(task)
+				updatedPayload := string(updatedPayloadBytes)
+
+				if task.RetryCount <= MaxRetries {
+					// Calculate exponential backoff duration (2^RetryCount * 2s) => 4s, 8s, 16s
+					backoffDur := time.Duration(1<<task.RetryCount) * 2 * time.Second
+					log.Printf("[Worker Thread #%d] Task failed. Re-enqueueing in %v. Attempt %d/%d", 
+						id, backoffDur, task.RetryCount, MaxRetries)
+					
+					// We execute sleep in a separate goroutine or in a blocker to prevent blockages,
+					// but since tasks should backoff, we can push back to queue, but wait, if we push it back immediately,
+					// another worker will pop it immediately.
+					// To correctly implement exponential backoff without stalling workers, we can delay re-enqueueing.
+					go func(backoff time.Duration, p string) {
+						time.Sleep(backoff)
+						err := queue.PushQueue(context.Background(), rdb, cfg.QueueName, p)
+						if err != nil {
+							log.Printf("[Backoff Router] Failed to re-enqueue task: %v", err)
+						}
+					}(backoffDur, updatedPayload)
+
+				} else {
+					log.Printf("[Worker Thread #%d] CRITICAL: Task exceeded max retries. Moving to Dead Letter Queue (DLQ).", id)
+					queue.PushDLQ(ctx, rdb, cfg.QueueName, updatedPayload)
+					updateBillStatus(cfg, client, task.BillID, successWhatsApp, hasEmail, successEmail)
+				}
+			}
 		}
 	}
 }

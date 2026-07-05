@@ -14,4 +14,5 @@ type QueueTask struct {
 	ShopName        string  `json:"shopName"`
 	ShopDescription string  `json:"shopDescription"`
 	ShopContact     string  `json:"shopContact"`
+	RetryCount      int     `json:"retryCount,omitempty"`
 }

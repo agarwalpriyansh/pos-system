@@ -26,6 +26,13 @@ func main() {
 	}
 	log.Println("[Worker Init] Connection to Redis verified successfully.")
 
+	// Recover orphaned tasks from previous runs
+	if err := queue.RecoverOrphans(rdb, cfg.QueueName); err != nil {
+		log.Printf("[Worker Init WARNING] Failed to recover orphaned tasks: %v", err)
+	} else {
+		log.Println("[Worker Init] Stranded/Orphaned queue task recovery sequence complete.")
+	}
+
 	// Instantiate Notifiers (DIP / OCP compliance)
 	whatsappNotifier := workers.NewWhatsAppNotifier(cfg)
 	emailNotifier := workers.NewEmailNotifier(cfg)
