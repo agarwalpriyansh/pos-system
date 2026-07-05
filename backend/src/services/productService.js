@@ -1,79 +1,77 @@
-const productRepository = require('../repositories/productRepository');
-
-const getActiveProducts = async (shopId) => {
-  return productRepository.findByShopId(shopId);
-};
-
-const createProduct = async (shopId, productData) => {
-  const { name, sku, price, category, stock } = productData;
-
-  if (!name || !sku || price === undefined || stock === undefined) {
-    throw new Error('Name, SKU, price, and stock are required');
+class ProductService {
+  constructor({ productRepository }) {
+    this.productRepository = productRepository;
   }
 
-  const existingProduct = await productRepository.findBySku(shopId, sku);
-  if (existingProduct) {
-    throw new Error(`SKU '${sku}' already exists in your shop`);
+  async getActiveProducts(shopId) {
+    return this.productRepository.findByShopIdAndActive(shopId);
   }
 
-  return productRepository.save({ 
-    shopId, 
-    name, 
-    sku, 
-    price, 
-    category: category || 'General', 
-    stock 
-  });
-};
+  async createProduct(shopId, productData) {
+    const { name, sku, price, category, stock } = productData;
 
-const updateProductStock = async (id, shopId, stock) => {
-  const product = await productRepository.findById(id, shopId);
-  if (!product) {
-    throw new Error('Product not found in this shop');
-  }
-  product.stock = stock;
-  await product.save();
-  return product;
-};
+    if (!name || !sku || price === undefined || stock === undefined) {
+      throw new Error('Name, SKU, price, and stock are required');
+    }
 
-const updateProductDetails = async (id, shopId, details) => {
-  const { name, sku, price, category, stock, isActive } = details;
-
-  if (sku) {
-    const existingProduct = await productRepository.findBySku(shopId, sku);
-    if (existingProduct && existingProduct._id.toString() !== id) {
+    const existingProduct = await this.productRepository.findBySku(shopId, sku);
+    if (existingProduct) {
       throw new Error(`SKU '${sku}' already exists in your shop`);
     }
+
+    return this.productRepository.save({ 
+      shopId, 
+      name, 
+      sku, 
+      price, 
+      category: category || 'General', 
+      stock 
+    });
   }
 
-  const product = await productRepository.findById(id, shopId);
-  if (!product) {
-    throw new Error('Product not found in this shop');
+  async updateProductStock(id, shopId, stock) {
+    const product = await this.productRepository.findById(id, shopId);
+    if (!product) {
+      throw new Error('Product not found in this shop');
+    }
+    product.stock = stock;
+    await product.save();
+    return product;
   }
 
-  if (name !== undefined) product.name = name;
-  if (sku !== undefined) product.sku = sku;
-  if (price !== undefined) product.price = price;
-  if (category !== undefined) product.category = category;
-  if (stock !== undefined) product.stock = stock;
-  if (isActive !== undefined) product.isActive = isActive;
+  async updateProductDetails(id, shopId, details) {
+    const { name, sku, price, category, stock, isActive } = details;
 
-  await product.save();
-  return product;
-};
+    if (sku) {
+      const existingProduct = await this.productRepository.findBySku(shopId, sku);
+      if (existingProduct && existingProduct._id.toString() !== id) {
+        throw new Error(`SKU '${sku}' already exists in your shop`);
+      }
+    }
 
-const deleteProductPermanently = async (id, shopId) => {
-  const product = await productRepository.findByIdAndDelete(id, shopId);
-  if (!product) {
-    throw new Error('Product not found in this shop');
+    const product = await this.productRepository.findById(id, shopId);
+    if (!product) {
+      throw new Error('Product not found in this shop');
+    }
+
+    if (name !== undefined) product.name = name;
+    if (sku !== undefined) product.sku = sku;
+    if (price !== undefined) product.price = price;
+    if (category !== undefined) product.category = category;
+    if (stock !== undefined) product.stock = stock;
+    if (isActive !== undefined) product.isActive = isActive;
+
+    await product.save();
+    return product;
   }
-  return product;
-};
 
-module.exports = {
-  getActiveProducts,
-  createProduct,
-  updateProductStock,
-  updateProductDetails,
-  deleteProductPermanently
-};
+  async deleteProductPermanently(id, shopId) {
+    const product = await this.productRepository.findByIdAndDelete(id, shopId);
+    if (!product) {
+      throw new Error('Product not found in this shop');
+    }
+    return product;
+  }
+}
+
+module.exports = ProductService;

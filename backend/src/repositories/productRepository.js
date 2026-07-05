@@ -8,6 +8,10 @@ const findByShopId = async (shopId) => {
   return Product.find({ shopId });
 };
 
+const findByShopIdAndActive = async (shopId, isActive = true) => {
+  return Product.find({ shopId, isActive });
+};
+
 const findBySku = async (shopId, sku) => {
   return Product.findOne({ shopId, sku });
 };
@@ -21,10 +25,16 @@ const save = async (productData, session) => {
   return product.save({ session });
 };
 
+const countActive = async (shopId) => {
+  return Product.countDocuments({ shopId, isActive: true });
+};
+
 module.exports = {
   findById,
   findByShopId,
+  findByShopIdAndActive,
   findBySku,
   findByIdAndDelete,
-  save
+  save,
+  countActive
 };

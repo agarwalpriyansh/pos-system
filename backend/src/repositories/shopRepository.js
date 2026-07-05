@@ -25,9 +25,18 @@ const save = async (shopData) => {
   return shop.save();
 };
 
+const countShopsExcludingPlatform = async (isActiveFilter) => {
+  const query = { shopId: { $ne: 'super-admin-platform' } };
+  if (isActiveFilter !== undefined) {
+    query.isActive = isActiveFilter;
+  }
+  return Shop.countDocuments(query);
+};
+
 module.exports = {
   findByShopId,
   findAllShops,
   findAndUpdate,
-  save
+  save,
+  countShopsExcludingPlatform
 };

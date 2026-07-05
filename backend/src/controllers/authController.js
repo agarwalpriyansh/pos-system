@@ -1,4 +1,12 @@
-const authService = require('../services/authService');
+const AuthService = require('../services/authService');
+const shopRepository = require('../repositories/shopRepository');
+const userRepository = require('../repositories/userRepository');
+
+// Instantiate service with dependency injection (DIP)
+const authService = new AuthService({
+  shopRepository,
+  userRepository
+});
 
 const register = async (req, res) => {
   try {

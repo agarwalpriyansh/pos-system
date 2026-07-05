@@ -16,6 +16,10 @@ const findAllUsers = async () => {
   return User.find().select('-password').sort({ createdAt: -1 });
 };
 
+const findOwnerByShopId = async (shopId) => {
+  return User.findOne({ shopId, role: 'Owner' }).select('name email');
+};
+
 const save = async (userData) => {
   const user = new User(userData);
   return user.save();
@@ -26,5 +30,6 @@ module.exports = {
   findByEmail,
   findByEmailOrGoogleId,
   findAllUsers,
+  findOwnerByShopId,
   save
 };

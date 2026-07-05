@@ -1,4 +1,10 @@
-const customerService = require('../services/customerService');
+const CustomerService = require('../services/customerService');
+const customerRepository = require('../repositories/customerRepository');
+
+// Instantiate service with dependency injection (DIP)
+const customerService = new CustomerService({
+  customerRepository
+});
 
 const getCustomers = async (req, res) => {
   try {

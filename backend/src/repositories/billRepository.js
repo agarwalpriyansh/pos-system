@@ -33,10 +33,63 @@ const save = async (billData, session) => {
   return bill.save({ session });
 };
 
+const aggregateStats = async (shopId) => {
+  return Bill.aggregate([
+    { $match: { shopId } },
+    {
+      $group: {
+        _id: null,
+        totalRevenue: { $sum: '$total' },
+        totalBills: { $sum: 1 }
+      }
+    }
+  ]);
+};
+
+const aggregatePayments = async (shopId) => {
+  return Bill.aggregate([
+    { $match: { shopId } },
+    {
+      $group: {
+        _id: '$paymentMethod',
+        count: { $sum: 1 },
+        amount: { $sum: '$total' }
+      }
+    }
+  ]);
+};
+
+const findRecent = async (shopId, limit) => {
+  return Bill.find({ shopId })
+    .populate('customer', 'name phone')
+    .sort({ createdAt: -1 })
+    .limit(limit);
+};
+
+const aggregateTopProducts = async (shopId, limit) => {
+  return Bill.aggregate([
+    { $match: { shopId } },
+    { $unwind: '$items' },
+    {
+      $group: {
+        _id: '$items.name',
+        quantity: { $sum: '$items.quantity' },
+        revenue: { $sum: '$items.total' }
+      }
+    },
+    { $sort: { quantity: -1 } },
+    { $limit: limit }
+  ]);
+};
+
 module.exports = {
   findById,
   findByIdAndUpdate,
   findByShopId,
   countTodayBills,
-  save
+  save,
+  aggregateStats,
+  aggregatePayments,
+  findRecent,
+  aggregateTopProducts
 };

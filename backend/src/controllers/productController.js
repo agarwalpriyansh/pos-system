@@ -1,4 +1,10 @@
-const productService = require('../services/productService');
+const ProductService = require('../services/productService');
+const productRepository = require('../repositories/productRepository');
+
+// Instantiate service with dependency injection (DIP)
+const productService = new ProductService({
+  productRepository
+});
 
 const getProducts = async (req, res) => {
   try {
