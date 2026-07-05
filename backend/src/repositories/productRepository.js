@@ -5,11 +5,11 @@ const findById = async (id, shopId, session) => {
 };
 
 const findByShopId = async (shopId) => {
-  return Product.find({ shopId });
+  return Product.find({ shopId }).lean();
 };
 
 const findByShopIdAndActive = async (shopId, isActive = true) => {
-  return Product.find({ shopId, isActive });
+  return Product.find({ shopId, isActive }).lean();
 };
 
 const findBySku = async (shopId, sku) => {

@@ -15,7 +15,8 @@ const findByIdAndUpdate = async (id, updateFields) => {
 const findByShopId = async (shopId) => {
   return Bill.find({ shopId })
     .populate('customer', 'name phone email')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 };
 
 const countTodayBills = async (shopId, startOfDay, endOfDay, session) => {
@@ -63,7 +64,8 @@ const findRecent = async (shopId, limit) => {
   return Bill.find({ shopId })
     .populate('customer', 'name phone')
     .sort({ createdAt: -1 })
-    .limit(limit);
+    .limit(limit)
+    .lean();
 };
 
 const aggregateTopProducts = async (shopId, limit) => {

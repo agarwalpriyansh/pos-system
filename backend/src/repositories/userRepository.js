@@ -13,11 +13,11 @@ const findByEmailOrGoogleId = async (email, googleId) => {
 };
 
 const findAllUsers = async () => {
-  return User.find().select('-password').sort({ createdAt: -1 });
+  return User.find().select('-password').sort({ createdAt: -1 }).lean();
 };
 
 const findOwnerByShopId = async (shopId) => {
-  return User.findOne({ shopId, role: 'Owner' }).select('name email');
+  return User.findOne({ shopId, role: 'Owner' }).select('name email').lean();
 };
 
 const save = async (userData) => {

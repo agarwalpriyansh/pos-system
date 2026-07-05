@@ -5,7 +5,7 @@ const findByPhone = async (shopId, phone, session) => {
 };
 
 const findByShopId = async (shopId) => {
-  return Customer.find({ shopId }).sort({ totalSpent: -1, updatedAt: -1 });
+  return Customer.find({ shopId }).sort({ totalSpent: -1, updatedAt: -1 }).lean();
 };
 
 const save = async (customerData, session) => {
