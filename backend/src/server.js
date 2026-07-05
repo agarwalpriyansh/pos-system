@@ -10,13 +10,39 @@ connectDB();
 // Initialize Redis connection
 getRedisClient();
 
+// Startup safety audit on keys
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'pos_jwt_secret_token_key') {
+    console.warn('\x1b[33m%s\x1b[0m', '[SECURITY WARNING] Default or missing JWT_SECRET detected in production! Please configure a secure signature key.');
+  }
+}
+
 const app = express();
 
-// Middlewares
-app.use(cors());
+// Hardened CORS Origin Controls
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',') 
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Rejected by secure CORS configuration'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
+// Global input XSS sanitization across all request bodies
+const { rateLimiter, sanitizeInput } = require('./middleware/security');
+app.use(sanitizeInput);
+
 const authMiddleware = require('./middleware/auth');
+
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
