@@ -54,7 +54,7 @@ export default function BillingInterface({ currentPath }) {
   // Protect internal routes and automatically redirect based on session token
   useEffect(() => {
     if (!token) {
-      if (currentPath !== '/login' && currentPath !== '/register' && currentPath !== '/google-setup') {
+      if (currentPath !== '/' && currentPath !== '/home' && currentPath !== '/login' && currentPath !== '/register' && currentPath !== '/google-setup') {
         window.history.pushState(null, '', '/login');
       }
     } else {
@@ -946,7 +946,6 @@ export default function BillingInterface({ currentPath }) {
         showMobileCart={showMobileCart}
         setShowMobileCart={setShowMobileCart}
         cart={cart}
-        onBackToHome={onBackToHome}
       />
 
       {/* RENDER VIEWS */}
