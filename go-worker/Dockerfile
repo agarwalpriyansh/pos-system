@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Compile the binary, disabling CGO to build a static binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o worker main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o worker ./cmd/worker/main.go
 
 # Stage 2: Run the binary in a clean minimal container
 FROM alpine:latest

@@ -1,15 +1,14 @@
-package main
+package templates
 
 import (
 	"fmt"
-	"log"
-	"net/smtp"
 	"strings"
+
+	"pos-whatsapp-worker/types"
+	"pos-whatsapp-worker/utils"
 )
 
-// Formats HTML email receipt layout & executes SMTP transmission
-func sendEmailMessage(cfg Config, task QueueTask) bool {
-	// Fallback to defaults if shop metadata is missing
+func BuildEmailHTML(task types.QueueTask) string {
 	shopName := task.ShopName
 	if shopName == "" {
 		shopName = "DS DRYFRUITS"
@@ -23,10 +22,7 @@ func sendEmailMessage(cfg Config, task QueueTask) bool {
 		shopContact = "ds.dryfruits@gmail.com"
 	}
 
-	subject := fmt.Sprintf("Invoice %s from %s", task.InvoiceNumber, shopName)
-	fromHeader := fmt.Sprintf("\"%s\" <%s>", shopName, cfg.SMTPFromEmail)
-	
-	htmlBody := fmt.Sprintf(`<!DOCTYPE html>
+	return fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -105,44 +101,13 @@ func sendEmailMessage(cfg Config, task QueueTask) bool {
 		strings.ToUpper(shopDesc),
 		shopContact,
 		task.InvoiceNumber,
-		formatDate(task.CreatedAt),
+		utils.FormatDate(task.CreatedAt),
 		task.PaymentMethod,
 		task.CustomerName,
 		task.CustomerPhone,
-		formatHTMLItems(task.ItemsSummary),
+		utils.FormatHTMLItems(task.ItemsSummary),
 		task.Total,
 		task.Total,
 		shopName,
 	)
-
-	if cfg.MockEmail {
-		// Log detailed receipt visualization to standard output
-		log.Printf("\n--- [MOCK EMAIL DISPATCH] ---\n"+
-			"To: %s\n"+
-			"Subject: %s\n"+
-			"From: %s\n"+
-			"HTML Body Preview:\n%s\n"+
-			"--------------------------------",
-			task.CustomerEmail, subject, fromHeader, htmlBody)
-		return true
-	}
-
-	// Build MIME message for HTML email
-	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
-	message := []byte(fmt.Sprintf("To: %s\nFrom: %s\nSubject: %s\n%s%s", 
-		task.CustomerEmail, fromHeader, subject, mime, htmlBody))
-
-	// Connect and send using SMTP
-	auth := smtp.PlainAuth("", cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPHost)
-	addr := fmt.Sprintf("%s:%d", cfg.SMTPHost, cfg.SMTPPort)
-
-	// Since Go's smtp.SendMail handles STARTTLS automatically when port 587 is used
-	err := smtp.SendMail(addr, auth, cfg.SMTPFromEmail, []string{task.CustomerEmail}, message)
-	if err != nil {
-		log.Printf("[Email Handler] Failed to send email using smtp.SendMail: %v", err)
-		return false
-	}
-
-	log.Printf("[Email Handler] Success: Invoice %s transmitted to email SMTP gateway.", task.InvoiceNumber)
-	return true
 }

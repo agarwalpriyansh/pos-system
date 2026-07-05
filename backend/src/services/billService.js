@@ -1,52 +1,33 @@
 const mongoose = require('mongoose');
-const Bill = require('../models/Bill');
-const Customer = require('../models/Customer');
-const Product = require('../models/Product');
-const Shop = require('../models/Shop');
-const { getRedisClient } = require('../config/redis');
+const billRepository = require('../repositories/billRepository');
+const customerRepository = require('../repositories/customerRepository');
+const productRepository = require('../repositories/productRepository');
+const shopRepository = require('../repositories/shopRepository');
+const queuePublisher = require('../queue/queuePublisher');
+const { getMultiplier } = require('../utils/multiplier');
 
-const getMultiplier = (weightChoice) => {
-  if (!weightChoice) return 1;
-  const clean = weightChoice.toLowerCase().trim();
-  if (clean.endsWith('kg')) {
-    return parseFloat(clean) || 1;
-  }
-  if (clean.endsWith('g') || clean.endsWith('gm') || clean.endsWith('gms')) {
-    const val = parseFloat(clean);
-    return val ? val / 1000 : 1;
-  }
-  const val = parseFloat(clean);
-  return val ? val / 1000 : 1;
-};
-
-// Create a new bill and push task to Redis queue
-const createBill = async (req, res) => {
+const createBill = async (shopId, billData) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { customerPhone, customerName, customerEmail, items, paymentMethod } = req.body;
-
-    if (!customerPhone || !customerName || !items || items.length === 0) {
-      return res.status(400).json({ error: 'Customer phone, name, and items are required' });
-    }
+    const { customerPhone, customerName, customerEmail, items, paymentMethod } = billData;
 
     // Fetch Shop metadata
-    const shop = await Shop.findOne({ shopId: req.shopId }).session(session);
+    const shop = await shopRepository.findByShopId(shopId, session);
     if (!shop) {
-      throw new Error(`Shop profile not found for tenant: ${req.shopId}`);
+      throw new Error(`Shop profile not found for tenant: ${shopId}`);
     }
 
     // 1. Create or Update Customer
-    let customer = await Customer.findOne({ shopId: req.shopId, phone: customerPhone }).session(session);
+    let customer = await customerRepository.findByPhone(shopId, customerPhone, session);
     if (!customer) {
-      customer = new Customer({
-        shopId: req.shopId,
+      customer = await customerRepository.save({
+        shopId,
         phone: customerPhone,
         name: customerName,
         email: customerEmail || undefined
-      });
-      await customer.save({ session });
+      }, session);
     } else {
       let isChanged = false;
       if (customerName !== customer.name) {
@@ -58,6 +39,7 @@ const createBill = async (req, res) => {
         isChanged = true;
       }
       if (isChanged) {
+        // Mongoose document save within transaction session
         await customer.save({ session });
       }
     }
@@ -67,7 +49,7 @@ const createBill = async (req, res) => {
     const billItems = [];
 
     for (const item of items) {
-      const product = await Product.findOne({ _id: item.productId, shopId: req.shopId }).session(session);
+      const product = await productRepository.findById(item.productId, shopId, session);
       if (!product) {
         throw new Error(`Product not found in your catalog: ${item.productId}`);
       }
@@ -114,19 +96,12 @@ const createBill = async (req, res) => {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-    const countToday = await Bill.countDocuments({
-      shopId: req.shopId,
-      createdAt: {
-        $gte: startOfDay,
-        $lte: endOfDay
-      }
-    }).session(session);
-
+    const countToday = await billRepository.countTodayBills(shopId, startOfDay, endOfDay, session);
     const invoiceNumber = `INV-${dateStr}-${countToday + 1}`;
 
     // 3. Create Bill Document
-    const bill = new Bill({
-      shopId: req.shopId,
+    const bill = await billRepository.save({
+      shopId,
       invoiceNumber,
       customer: customer._id,
       items: billItems,
@@ -137,9 +112,7 @@ const createBill = async (req, res) => {
       paymentMethod,
       whatsappStatus: 'Pending',
       emailStatus: customer.email ? 'Pending' : 'N/A'
-    });
-
-    await bill.save({ session });
+    }, session);
 
     // Update Customer's total spent
     customer.totalSpent += total;
@@ -178,64 +151,35 @@ const createBill = async (req, res) => {
     session.endSession();
 
     // 6. Publish to Redis Queue (LPUSH) after successful transaction commit
-    const redis = getRedisClient();
-    const queueName = process.env.REDIS_QUEUE_NAME || 'queue:bills';
-    await redis.lpush(queueName, JSON.stringify(taskPayload));
+    await queuePublisher.publishBillTask(taskPayload);
 
-    console.log(`[Queue Publisher] Successfully queued WhatsApp/Email job for invoice ${bill.invoiceNumber} (Shop: ${shop.name})`);
-
-    res.status(201).json({
-      message: 'Bill created successfully and queued for receipt broadcast',
-      bill
-    });
+    return bill;
 
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    console.error('[Billing Endpoint Error]:', error.message);
-    res.status(500).json({ error: error.message });
+    throw error;
   }
 };
 
-// Get all bills for the tenant
-const getBills = async (req, res) => {
-  try {
-    const bills = await Bill.find({ shopId: req.shopId })
-      .populate('customer', 'name phone email')
-      .sort({ createdAt: -1 });
-    res.json(bills);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+const getBillsByShopId = async (shopId) => {
+  return billRepository.findByShopId(shopId);
 };
 
-// Update delivery status of a bill (Open endpoint called by background worker)
-const updateBillStatus = async (req, res) => {
-  try {
-    const { whatsappStatus, emailStatus } = req.body;
-    const updateFields = {};
-    if (whatsappStatus) updateFields.whatsappStatus = whatsappStatus;
-    if (emailStatus) updateFields.emailStatus = emailStatus;
+const updateBillStatus = async (id, whatsappStatus, emailStatus) => {
+  const updateFields = {};
+  if (whatsappStatus) updateFields.whatsappStatus = whatsappStatus;
+  if (emailStatus) updateFields.emailStatus = emailStatus;
 
-    // Direct findByIdAndUpdate since Bill ID is a globally unique Mongo ObjectId
-    const bill = await Bill.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateFields },
-      { new: true }
-    );
-
-    if (!bill) {
-      return res.status(404).json({ error: 'Bill not found' });
-    }
-
-    res.json({ message: 'Status updated successfully', bill });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  const bill = await billRepository.findByIdAndUpdate(id, updateFields);
+  if (!bill) {
+    throw new Error('Bill not found');
   }
+  return bill;
 };
 
 module.exports = {
   createBill,
-  getBills,
+  getBillsByShopId,
   updateBillStatus
 };

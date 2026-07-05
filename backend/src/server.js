@@ -16,7 +16,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const authMiddleware = require('./middlewares/auth');
+const authMiddleware = require('./middleware/auth');
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));

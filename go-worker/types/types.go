@@ -1,4 +1,4 @@
-package main
+package types
 
 // QueueTask represents the structural schema pushed by Node.js
 type QueueTask struct {

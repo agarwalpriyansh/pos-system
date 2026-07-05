@@ -7,28 +7,21 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
-	"github.com/redis/go-redis/v9"
+	"pos-whatsapp-worker/config"
+	"pos-whatsapp-worker/queue"
+	"pos-whatsapp-worker/workers"
 )
 
 func main() {
-	config := loadConfig()
+	cfg := config.LoadConfig()
 	log.Printf("[Worker Init] Starting POS WhatsApp/Email service worker...")
 	log.Printf("[Worker Init] Configuration: RedisAddr=%s, Concurrency=%d, MockModeWhatsApp=%t, MockModeEmail=%t", 
-		config.RedisAddr, config.WorkerCount, config.MockWhatsApp, config.MockEmail)
+		cfg.RedisAddr, cfg.WorkerCount, cfg.MockWhatsApp, cfg.MockEmail)
 
 	// Initialize Redis
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     config.RedisAddr,
-		Password: config.RedisPassword,
-		DB:       config.RedisDB,
-	})
-
-	// Test Connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := rdb.Ping(ctx).Err(); err != nil {
+	rdb, err := queue.ConnectRedis(cfg.RedisAddr, cfg.RedisPassword, cfg.RedisDB)
+	if err != nil {
 		log.Fatalf("[Critical] Unable to connect to Redis: %v", err)
 	}
 	log.Println("[Worker Init] Connection to Redis verified successfully.")
@@ -40,9 +33,9 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Boot Worker Pool
-	for i := 1; i <= config.WorkerCount; i++ {
+	for i := 1; i <= cfg.WorkerCount; i++ {
 		wg.Add(1)
-		go worker(runCtx, &wg, i, rdb, config)
+		go workers.StartWorker(runCtx, &wg, i, rdb, cfg)
 	}
 
 	// Capture Shutdown Signals

@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"os"
@@ -26,7 +26,7 @@ type Config struct {
 	MockEmail         bool
 }
 
-func loadConfig() Config {
+func LoadConfig() Config {
 	workerCount, err := strconv.Atoi(getEnv("WORKER_COUNT", "5"))
 	if err != nil {
 		workerCount = 5
@@ -71,8 +71,12 @@ func getEnv(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-	// Try parsing .env manually if exists in folder
+	// Try parsing .env manually if exists in folder (check root path or relative path)
 	data, err := os.ReadFile(".env")
+	if err != nil {
+		// fallback to check parent directory .env
+		data, err = os.ReadFile("../.env")
+	}
 	if err == nil {
 		lines := strings.Split(string(data), "\n")
 		for _, line := range lines {

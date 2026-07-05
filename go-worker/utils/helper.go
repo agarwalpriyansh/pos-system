@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"fmt"
@@ -7,8 +7,23 @@ import (
 	"time"
 )
 
+// Formats UTC ISO-8601 string to beautiful IST format e.g. "01 Jun 2026, 12:27 am"
+func FormatDate(isoStr string) string {
+	if isoStr == "" {
+		return time.Now().Format("02 Jan 2006, 03:04 pm")
+	}
+	t, err := time.Parse(time.RFC3339, isoStr)
+	if err != nil {
+		return time.Now().Format("02 Jan 2006, 03:04 pm")
+	}
+	// Shift to IST (UTC +5:30)
+	loc := time.FixedZone("IST", 5.5*60*60)
+	tIST := t.In(loc)
+	return tIST.Format("02 Jan 2006, 03:04 pm")
+}
+
 // Clean list delimiters to beautiful bold bulletins for WhatsApp formatting
-func formatWhatsAppItems(summary string) string {
+func FormatWhatsAppItems(summary string) string {
 	if summary == "" {
 		return ""
 	}
@@ -55,7 +70,7 @@ func formatWhatsAppItems(summary string) string {
 }
 
 // Clean list delimiters to beautiful bold bulletins for HTML layout
-func formatHTMLItems(summary string) string {
+func FormatHTMLItems(summary string) string {
 	if summary == "" {
 		return ""
 	}
@@ -108,19 +123,4 @@ func formatHTMLItems(summary string) string {
 			</tr>`, name, qty, price, totalStr))
 	}
 	return rows.String()
-}
-
-// Formats UTC ISO-8601 string to beautiful IST format e.g. "01 Jun 2026, 12:27 am"
-func formatDate(isoStr string) string {
-	if isoStr == "" {
-		return time.Now().Format("02 Jan 2006, 03:04 pm")
-	}
-	t, err := time.Parse(time.RFC3339, isoStr)
-	if err != nil {
-		return time.Now().Format("02 Jan 2006, 03:04 pm")
-	}
-	// Shift to IST (UTC +5:30)
-	loc := time.FixedZone("IST", 5.5*60*60)
-	tIST := t.In(loc)
-	return tIST.Format("02 Jan 2006, 03:04 pm")
 }
