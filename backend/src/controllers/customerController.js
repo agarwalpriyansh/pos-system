@@ -6,24 +6,21 @@ const customerService = new CustomerService({
   customerRepository
 });
 
-const getCustomers = async (req, res) => {
+const getCustomers = async (req, res, next) => {
   try {
     const customers = await customerService.getCustomersSortedBySpent(req.shopId);
     res.json(customers);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-const searchCustomer = async (req, res) => {
+const searchCustomer = async (req, res, next) => {
   try {
     const customer = await customerService.searchCustomerByPhone(req.shopId, req.query.phone);
     res.json(customer);
   } catch (error) {
-    if (error.message.includes('not found')) {
-      return res.status(404).json({ message: error.message });
-    }
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 

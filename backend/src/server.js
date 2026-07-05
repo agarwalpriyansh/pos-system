@@ -56,6 +56,9 @@ app.post('/api/seed', async (req, res) => {
   }
 });
 
+const errorHandler = require('./middleware/errorHandler');
+app.use(errorHandler);
+
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

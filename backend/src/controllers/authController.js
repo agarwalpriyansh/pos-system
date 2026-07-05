@@ -1,6 +1,7 @@
 const AuthService = require('../services/authService');
 const shopRepository = require('../repositories/shopRepository');
 const userRepository = require('../repositories/userRepository');
+const { BadRequestError, ForbiddenError } = require('../utils/appError');
 
 // Instantiate service with dependency injection (DIP)
 const authService = new AuthService({
@@ -8,12 +9,12 @@ const authService = new AuthService({
   userRepository
 });
 
-const register = async (req, res) => {
+const register = async (req, res, next) => {
   try {
     const { shopName, shopDescription, shopContact, ownerName, ownerEmail, password } = req.body;
 
     if (!shopName || !ownerName || !ownerEmail || !password) {
-      return res.status(400).json({ error: 'Shop name, owner name, email, and password are required' });
+      throw new BadRequestError('Shop name, owner name, email, and password are required');
     }
 
     const { token, user, shop } = await authService.registerShopAndOwner(
@@ -33,16 +34,16 @@ const register = async (req, res) => {
       shop
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-const login = async (req, res) => {
+const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      throw new BadRequestError('Email and password are required');
     }
 
     const { token, user, shop } = await authService.loginUser(email, password);
@@ -61,18 +62,18 @@ const login = async (req, res) => {
     });
   } catch (error) {
     if (error.message.includes('suspended')) {
-      return res.status(403).json({ error: error.message });
+      return next(new ForbiddenError(error.message));
     }
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-const googleOauthSimulated = async (req, res) => {
+const googleOauthSimulated = async (req, res, next) => {
   try {
     const { googleId, email, name } = req.body;
 
     if (!googleId || !email || !name) {
-      return res.status(400).json({ error: 'OAuth googleId, email, and name are required' });
+      throw new BadRequestError('OAuth googleId, email, and name are required');
     }
 
     const { token, user, shop } = await authService.loginGoogleOauthSimulated(googleId, email, name);
@@ -91,9 +92,9 @@ const googleOauthSimulated = async (req, res) => {
     });
   } catch (error) {
     if (error.message.includes('suspended')) {
-      return res.status(403).json({ error: error.message });
+      return next(new ForbiddenError(error.message));
     }
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
@@ -103,11 +104,11 @@ const getGoogleConfig = (req, res) => {
   });
 };
 
-const googleLogin = async (req, res) => {
+const googleLogin = async (req, res, next) => {
   try {
     const { idToken } = req.body;
     if (!idToken) {
-      return res.status(400).json({ error: 'Google ID Token is required' });
+      throw new BadRequestError('Google ID Token is required');
     }
 
     const result = await authService.verifyAndLoginGoogleToken(idToken);
@@ -130,18 +131,18 @@ const googleLogin = async (req, res) => {
     });
   } catch (error) {
     if (error.message.includes('suspended')) {
-      return res.status(403).json({ error: error.message });
+      return next(new ForbiddenError(error.message));
     }
-    res.status(400).json({ error: error.message || 'Google OAuth token verification failed' });
+    next(error);
   }
 };
 
-const googleRegister = async (req, res) => {
+const googleRegister = async (req, res, next) => {
   try {
     const { idToken, shopName, shopDescription, shopContact, ownerName } = req.body;
 
     if (!idToken || !shopName || !ownerName) {
-      return res.status(400).json({ error: 'ID Token, Shop Name, and Owner Name are required' });
+      throw new BadRequestError('ID Token, Shop Name, and Owner Name are required');
     }
 
     const { token, user, shop } = await authService.registerGoogleUser(
@@ -161,20 +162,20 @@ const googleRegister = async (req, res) => {
       shop
     });
   } catch (error) {
-    res.status(400).json({ error: error.message || 'Failed to complete Google registration' });
+    next(error);
   }
 };
 
-const me = async (req, res) => {
+const me = async (req, res, next) => {
   try {
     const { user, shop } = await authService.getUserProfileAndShop(req.user.userId, req.shopId);
     res.json({ user, shop });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-const updateShop = async (req, res) => {
+const updateShop = async (req, res, next) => {
   try {
     const { name, description, contact } = req.body;
     const shop = await authService.updateShopProfile(
@@ -186,9 +187,9 @@ const updateShop = async (req, res) => {
     });
   } catch (error) {
     if (error.message.includes('Forbidden')) {
-      return res.status(403).json({ error: error.message });
+      return next(new ForbiddenError(error.message));
     }
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 

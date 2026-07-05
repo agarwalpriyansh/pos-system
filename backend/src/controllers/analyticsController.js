@@ -10,13 +10,12 @@ const analyticsService = new AnalyticsService({
   productRepository
 });
 
-const getAnalytics = async (req, res) => {
+const getAnalytics = async (req, res, next) => {
   try {
     const analytics = await analyticsService.compileLiveMetrics(req.shopId);
     res.json(analytics);
   } catch (error) {
-    console.error('[Analytics Error]:', error.message);
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 

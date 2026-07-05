@@ -1,6 +1,7 @@
 const SuperAdminService = require('../services/superAdminService');
 const shopRepository = require('../repositories/shopRepository');
 const userRepository = require('../repositories/userRepository');
+const { BadRequestError } = require('../utils/appError');
 
 // Instantiate service with dependency injection (DIP)
 const superAdminService = new SuperAdminService({
@@ -8,7 +9,7 @@ const superAdminService = new SuperAdminService({
   userRepository
 });
 
-const seedSuperAdmin = async (req, res) => {
+const seedSuperAdmin = async (req, res, next) => {
   try {
     const credentials = await superAdminService.seedSuperAdmin();
     res.status(201).json({
@@ -16,36 +17,33 @@ const seedSuperAdmin = async (req, res) => {
       credentials
     });
   } catch (error) {
-    console.error('[Super Admin Seed Error]:', error.message);
-    res.status(error.message.includes('already seeded') ? 400 : 500).json({ error: error.message });
+    next(error);
   }
 };
 
-const getDashboardMetrics = async (req, res) => {
+const getDashboardMetrics = async (req, res, next) => {
   try {
     const metrics = await superAdminService.getDashboardMetrics();
     res.json({ metrics });
   } catch (error) {
-    console.error('[Super Admin Dashboard Error]:', error.message);
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-const getShopsList = async (req, res) => {
+const getShopsList = async (req, res, next) => {
   try {
     const shopsList = await superAdminService.getShopsList();
     res.json(shopsList);
   } catch (error) {
-    console.error('[Super Admin Get Shops Error]:', error.message);
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-const updateShopStatus = async (req, res) => {
+const updateShopStatus = async (req, res, next) => {
   try {
     const { isActive } = req.body;
     if (isActive === undefined) {
-      return res.status(400).json({ error: 'isActive flag is required' });
+      throw new BadRequestError('isActive flag is required');
     }
 
     const shop = await superAdminService.updateShopStatus(req.params.shopId, isActive);
@@ -54,8 +52,7 @@ const updateShopStatus = async (req, res) => {
       shop
     });
   } catch (error) {
-    console.error('[Super Admin Update Shop Status Error]:', error.message);
-    res.status(error.message.includes('not found') ? 404 : 400).json({ error: error.message });
+    next(error);
   }
 };
 

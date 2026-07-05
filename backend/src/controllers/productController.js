@@ -6,48 +6,48 @@ const productService = new ProductService({
   productRepository
 });
 
-const getProducts = async (req, res) => {
+const getProducts = async (req, res, next) => {
   try {
     const products = await productService.getActiveProducts(req.shopId);
     res.json(products);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-const createProduct = async (req, res) => {
+const createProduct = async (req, res, next) => {
   try {
     const newProduct = await productService.createProduct(req.shopId, req.body);
     res.status(201).json(newProduct);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    next(error);
   }
 };
 
-const updateProductStock = async (req, res) => {
+const updateProductStock = async (req, res, next) => {
   try {
     const product = await productService.updateProductStock(req.params.id, req.shopId, req.body.stock);
     res.json(product);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    next(error);
   }
 };
 
-const updateProductDetails = async (req, res) => {
+const updateProductDetails = async (req, res, next) => {
   try {
     const product = await productService.updateProductDetails(req.params.id, req.shopId, req.body);
     res.json(product);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    next(error);
   }
 };
 
-const deleteProduct = async (req, res) => {
+const deleteProduct = async (req, res, next) => {
   try {
     const product = await productService.deleteProductPermanently(req.params.id, req.shopId);
     res.json({ message: 'Product successfully deleted permanently', product });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 

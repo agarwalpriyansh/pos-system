@@ -14,7 +14,7 @@ const billService = new BillService({
   queuePublisher
 });
 
-const createBill = async (req, res) => {
+const createBill = async (req, res, next) => {
   try {
     const bill = await billService.createBill(req.shopId, req.body);
     res.status(201).json({
@@ -22,26 +22,26 @@ const createBill = async (req, res) => {
       bill
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-const getBills = async (req, res) => {
+const getBills = async (req, res, next) => {
   try {
     const bills = await billService.getBillsByShopId(req.shopId);
     res.json(bills);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
-const updateBillStatus = async (req, res) => {
+const updateBillStatus = async (req, res, next) => {
   try {
     const { whatsappStatus, emailStatus } = req.body;
     const bill = await billService.updateBillStatus(req.params.id, whatsappStatus, emailStatus);
     res.json({ message: 'Status updated successfully', bill });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
