@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const UserSchema = new mongoose.Schema({
   shopId: {
     type: String,
-    required: [true, 'Shop ID is required'],
-    index: true
+    required: [true, 'Shop ID is required']
   },
   name: {
     type: String,
@@ -34,5 +33,8 @@ const UserSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Compound index for querying shop owners/staff quickly
+UserSchema.index({ shopId: 1, role: 1 });
 
 module.exports = mongoose.model('User', UserSchema);

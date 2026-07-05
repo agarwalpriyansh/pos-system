@@ -33,8 +33,7 @@ const BillItemSchema = new mongoose.Schema({
 const BillSchema = new mongoose.Schema({
   shopId: {
     type: String,
-    required: [true, 'Shop ID is required'],
-    index: true
+    required: [true, 'Shop ID is required']
   },
   invoiceNumber: {
     type: String,
@@ -79,5 +78,8 @@ const BillSchema = new mongoose.Schema({
 
 // Compound index to ensure unique invoiceNumber per shop
 BillSchema.index({ shopId: 1, invoiceNumber: 1 }, { unique: true });
+
+// Compound index for date range query and sorting performance
+BillSchema.index({ shopId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Bill', BillSchema);

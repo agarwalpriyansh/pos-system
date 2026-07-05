@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const CustomerSchema = new mongoose.Schema({
   shopId: {
     type: String,
-    required: [true, 'Shop ID is required'],
-    index: true
+    required: [true, 'Shop ID is required']
   },
   phone: {
     type: String,
@@ -32,5 +31,8 @@ const CustomerSchema = new mongoose.Schema({
 
 // Compound index to ensure unique phone per shop
 CustomerSchema.index({ shopId: 1, phone: 1 }, { unique: true });
+
+// Compound index for spent-based sorting performance
+CustomerSchema.index({ shopId: 1, totalSpent: -1, updatedAt: -1 });
 
 module.exports = mongoose.model('Customer', CustomerSchema);
